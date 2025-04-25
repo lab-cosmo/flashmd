@@ -1,0 +1,47 @@
+[project]
+name = "skipmd"
+version = "0.1.0"
+requires-python = ">=3.9"
+
+readme = "README.md"
+license = {text = "Apache-2.0"}
+description = "Accelerated molecular dynamics with large-time-step predictions"
+authors = [{name = "skipmd developers"}]
+
+dependencies = [
+    "ase",
+    "metatrain",
+]
+
+keywords = ["machine learning", "molecular modeling", "molecular dynamics"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: POSIX",
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: Microsoft :: Windows",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Topic :: Scientific/Engineering :: Chemistry",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+# TODO: add project URLs
+
+[build-system]
+requires = [
+    "setuptools",
+    "wheel",
+]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 88
