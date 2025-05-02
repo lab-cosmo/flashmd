@@ -59,7 +59,7 @@ class VelocityVerlet(MolecularDynamics):
         self.atoms.set_momenta(new_system.get_data("momenta").block().values.squeeze(-1).detach().cpu().numpy())
         # new_energy = self.atoms.get_total_energy()
         # old_kinetic_energy = self.atoms.get_kinetic_energy()
-        # rescale momenta to conserve energy
+        # # rescale momenta to conserve energy
         # self.atoms.set_momenta(
         #     self.atoms.get_momenta() * np.sqrt(1.0 - (new_energy - old_energy) / old_kinetic_energy)
         # )
