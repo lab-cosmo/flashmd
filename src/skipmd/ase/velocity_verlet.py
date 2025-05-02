@@ -1,67 +1,105 @@
 from ase.md.md import MolecularDynamics
+from typing import List
 # from ..utils.pretrained import load_pretrained_models
-from metatensor.torch.atomistic import ModelEvaluationOptions, ModelOutput
+from metatensor.torch.atomistic import MetatensorAtomisticModel
 from metatensor.torch import Labels, TensorBlock, TensorMap
 import ase.units
 import torch
-from metatensor.torch.atomistic.ase_calculator import _ase_to_torch_data, _compute_ase_neighbors
+from metatensor.torch.atomistic.ase_calculator import _ase_to_torch_data
 from metatensor.torch.atomistic import System
+import ase
+from ..stepper import SkipMDStepper
+from typing import Optional
 import numpy as np
 
 
 class VelocityVerlet(MolecularDynamics):
-    def __init__(self, model, base_timestep, device, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(
+            self,
+            atoms: ase.Atoms,
+            timestep: float,
+            model: MetatensorAtomisticModel | List[MetatensorAtomisticModel],
+            energy_model: Optional[MetatensorAtomisticModel] = None,
+            device: str | torch.device = "auto",
+            **kwargs
+        ):
+        super().__init__(atoms, timestep, **kwargs)
 
-        self.model = model
-        self.n_time_steps = int([k for k in model.capabilities().outputs.keys() if "mtt::delta_" in k][0].split("_")[1])
+        models = model if isinstance(model, list) else [model]
+        capabilities = models[0].capabilities()
 
-        if self.n_time_steps != self.dt / base_timestep:
+        base_timestep = (
+            0.5 * ase.units.fs
+            if capabilities.atomic_types == [1, 8]
+            else
+            1.0 * ase.units.fs  
+        )  # TODO: extract from the model
+
+        n_time_steps = int([k for k in capabilities.outputs.keys() if "mtt::delta_" in k][0].split("_")[1])
+        if n_time_steps != self.dt / base_timestep:
             raise ValueError(
                 f"Mismatch between timestep ({self.dt}) and model timestep ({base_timestep})."
             )
+        
+        if device == "auto":
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+        else:
+            device = device
+        self.device = torch.device(device)
+        self.dtype = getattr(torch, capabilities.dtype)
 
-        self.evaluation_options = ModelEvaluationOptions(
-            length_unit="Angstrom",
-            outputs={
-                f"mtt::delta_{self.n_time_steps}_q": ModelOutput(per_atom=True),
-                f"mtt::p_{self.n_time_steps}": ModelOutput(per_atom=True),
-            }
-        )
-        self.dtype = torch.float32
-        self.device = device
+        self.stepper = SkipMDStepper(models, n_time_steps, self.device, energy_model)
 
     def step(self):
 
-        system_data = _ase_to_torch_data(self.atoms, dtype=self.dtype, device=self.device)
+        system = _convert_atoms_to_system(self.atoms, device=self.device, dtype=self.dtype)
+        new_system = self.stepper.step(system)
+        # old_energy = self.atoms.get_total_energy()
+        self.atoms.set_positions(new_system.positions.detach().cpu().numpy())
+        self.atoms.set_momenta(new_system.get_data("momenta").block().values.squeeze(-1).detach().cpu().numpy())
+        # new_energy = self.atoms.get_total_energy()
+        # old_kinetic_energy = self.atoms.get_kinetic_energy()
+        # rescale momenta to conserve energy
+        # self.atoms.set_momenta(
+        #     self.atoms.get_momenta() * np.sqrt(1.0 - (new_energy - old_energy) / old_kinetic_energy)
+        # )
+
+
+def _convert_atoms_to_system(atoms: ase.Atoms, dtype: str, device: str | torch.device) -> System:
+        system_data = _ase_to_torch_data(atoms, dtype=dtype, device=device)
         system = System(*system_data)
-        for options in self.model.requested_neighbor_lists():
-            neighbors = _compute_ase_neighbors(
-                self.atoms, options, dtype=self.dtype, device=self.device
-            )
-            system.add_neighbor_list(options, neighbors)
         system.add_data(
             "momenta",
             TensorMap(
-                keys=Labels.single().to(self.device),
+                keys=Labels.single().to(device),
                 blocks = [
                     TensorBlock(
-                        values=torch.tensor(self.atoms.get_momenta(), dtype=self.dtype, device=self.device).unsqueeze(-1),
+                        values=torch.tensor(atoms.get_momenta(), dtype=dtype, device=device).unsqueeze(-1),
                         samples=Labels(
                             names=["system", "atom"],
-                            values=torch.tensor([[0, j] for j in range(len(self.atoms))], device=self.device),
+                            values=torch.tensor([[0, j] for j in range(len(atoms))], device=device),
                         ),
-                        components=[Labels(names="xyz", values=torch.tensor([[0], [1], [2]], device=self.device))],
-                        properties=Labels.single().to(self.device),
+                        components=[Labels(names="xyz", values=torch.tensor([[0], [1], [2]], device=device))],
+                        properties=Labels.single().to(device),
                     )
                 ],
             )
         )
-        model_outputs = self.model([system], self.evaluation_options, check_consistency=False)
-        delta_q_scaled = model_outputs[f"mtt::delta_{self.n_time_steps}_q"].block().values.squeeze(-1).detach().cpu().numpy()
-        p_scaled = model_outputs[f"mtt::p_{self.n_time_steps}"].block().values.squeeze(-1).detach().cpu().numpy()
-        sqrt_masses = np.sqrt(self.atoms.get_masses()[:, None])
-        delta_q = delta_q_scaled / sqrt_masses
-        p = p_scaled * sqrt_masses
-        self.atoms.set_positions(self.atoms.get_positions() + delta_q)
-        self.atoms.set_momenta(p)
+        system.add_data(
+            "masses",
+            TensorMap(
+                keys=Labels.single().to(device),
+                blocks = [
+                    TensorBlock(
+                        values=torch.tensor(atoms.get_masses(), dtype=dtype, device=device).unsqueeze(-1),
+                        samples=Labels(
+                            names=["system", "atom"],
+                            values=torch.tensor([[0, j] for j in range(len(atoms))], device=device),
+                        ),
+                        components=[],
+                        properties=Labels.single().to(device),
+                    )
+                ],
+            )
+        )
+        return system
