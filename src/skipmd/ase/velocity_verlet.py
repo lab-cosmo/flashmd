@@ -62,9 +62,8 @@ class VelocityVerlet(MolecularDynamics):
         if self.rescale_energy:
             new_energy = self.atoms.get_total_energy()
             old_kinetic_energy = self.atoms.get_kinetic_energy()
-            self.atoms.set_momenta(
-                self.atoms.get_momenta() * np.sqrt(1.0 - (new_energy - old_energy) / old_kinetic_energy)
-            )
+            alpha = np.sqrt(1.0 - (new_energy - old_energy) / old_kinetic_energy)
+            self.atoms.set_momenta(alpha * self.atoms.get_momenta())
 
 
 def _convert_atoms_to_system(atoms: ase.Atoms, dtype: str, device: str | torch.device) -> System:
