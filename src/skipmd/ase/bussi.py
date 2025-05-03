@@ -17,11 +17,11 @@ class Bussi(VelocityVerlet):
         temperature_K: float,
         model: MetatensorAtomisticModel | List[MetatensorAtomisticModel],
         time_constant: float = 10.0 * ase.units.fs,
-        energy_model: Optional[MetatensorAtomisticModel] = None,
         device: str | torch.device = "auto",
+        rescale_energy: bool = True,
         **kwargs
     ):
-        super().__init__(atoms, timestep, model, energy_model, device=device, **kwargs)
+        super().__init__(atoms, timestep, model, device, rescale_energy, **kwargs)
 
         self.temperature_K = temperature_K
         self.time_constant = time_constant
@@ -33,7 +33,7 @@ class Bussi(VelocityVerlet):
 
     def apply_bussi_half_step(self):
 
-        kinetic_energy = self.atoms.get_kinetic_energy()
+        old_kinetic_energy = self.atoms.get_kinetic_energy()
         n_degrees_of_freedom = 3 * len(self.atoms)
         target_kinetic_energy = 0.5 * ase.units.kB * self.temperature_K * n_degrees_of_freedom
 
@@ -41,7 +41,7 @@ class Bussi(VelocityVerlet):
         energy_scaling_term = (
             (1.0 - exp_term)
             * target_kinetic_energy
-            / kinetic_energy
+            / old_kinetic_energy
             / n_degrees_of_freedom
         )
         r = np.random.randn(n_degrees_of_freedom)

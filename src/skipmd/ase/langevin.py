@@ -22,11 +22,11 @@ class Langevin(VelocityVerlet):
         temperature_K: float,
         model: MetatensorAtomisticModel | List[MetatensorAtomisticModel],
         time_constant: float = 100.0 * ase.units.fs,
-        energy_model: Optional[MetatensorAtomisticModel] = None,
         device: str | torch.device = "auto",
+        rescale_energy: bool = True,
         **kwargs
     ):
-        super().__init__(atoms, timestep, model, energy_model, device=device, **kwargs)
+        super().__init__(atoms, timestep, model, device, rescale_energy, **kwargs)
 
         self.temperature_K = temperature_K
         self.friction = 1.0 / time_constant

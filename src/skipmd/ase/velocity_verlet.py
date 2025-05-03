@@ -1,6 +1,5 @@
 from ase.md.md import MolecularDynamics
 from typing import List
-# from ..utils.pretrained import load_pretrained_models
 from metatensor.torch.atomistic import MetatensorAtomisticModel
 from metatensor.torch import Labels, TensorBlock, TensorMap
 import ase.units
@@ -9,7 +8,6 @@ from metatensor.torch.atomistic.ase_calculator import _ase_to_torch_data
 from metatensor.torch.atomistic import System
 import ase
 from ..stepper import SkipMDStepper
-from typing import Optional
 import numpy as np
 
 
@@ -19,8 +17,8 @@ class VelocityVerlet(MolecularDynamics):
             atoms: ase.Atoms,
             timestep: float,
             model: MetatensorAtomisticModel | List[MetatensorAtomisticModel],
-            energy_model: Optional[MetatensorAtomisticModel] = None,
             device: str | torch.device = "auto",
+            rescale_energy: bool = True,
             **kwargs
         ):
         super().__init__(atoms, timestep, **kwargs)
@@ -48,21 +46,25 @@ class VelocityVerlet(MolecularDynamics):
         self.device = torch.device(device)
         self.dtype = getattr(torch, capabilities.dtype)
 
-        self.stepper = SkipMDStepper(models, n_time_steps, self.device, energy_model)
+        self.stepper = SkipMDStepper(models, n_time_steps, self.device)
+        self.rescale_energy = rescale_energy
 
     def step(self):
 
+        if self.rescale_energy:
+            old_energy = self.atoms.get_total_energy()
+
         system = _convert_atoms_to_system(self.atoms, device=self.device, dtype=self.dtype)
         new_system = self.stepper.step(system)
-        # old_energy = self.atoms.get_total_energy()
         self.atoms.set_positions(new_system.positions.detach().cpu().numpy())
         self.atoms.set_momenta(new_system.get_data("momenta").block().values.squeeze(-1).detach().cpu().numpy())
-        # new_energy = self.atoms.get_total_energy()
-        # old_kinetic_energy = self.atoms.get_kinetic_energy()
-        # # rescale momenta to conserve energy
-        # self.atoms.set_momenta(
-        #     self.atoms.get_momenta() * np.sqrt(1.0 - (new_energy - old_energy) / old_kinetic_energy)
-        # )
+
+        if self.rescale_energy:
+            new_energy = self.atoms.get_total_energy()
+            old_kinetic_energy = self.atoms.get_kinetic_energy()
+            self.atoms.set_momenta(
+                self.atoms.get_momenta() * np.sqrt(1.0 - (new_energy - old_energy) / old_kinetic_energy)
+            )
 
 
 def _convert_atoms_to_system(atoms: ase.Atoms, dtype: str, device: str | torch.device) -> System:

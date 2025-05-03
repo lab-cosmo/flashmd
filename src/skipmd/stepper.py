@@ -19,7 +19,6 @@ class SkipMDStepper:
         models: List[MetatensorAtomisticModel],
         n_time_steps: int,
         device: torch.device,
-        energy_model: Optional[MetatensorAtomisticModel],
         # q_error_threshold: float = 0.1,
         # p_error_threshold: float = 0.1,
         # energy_error_threshold: float = 0.1,
