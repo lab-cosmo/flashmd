@@ -14,12 +14,7 @@ def get_skipmd_velocity_verlet_step(sim, model, device):
 
     capabilities = model.capabilities()
 
-    base_timestep = (
-        0.5 * ase.units.fs
-        if capabilities.atomic_types == [1, 8]
-        else
-        1.0 * ase.units.fs  
-    )  # TODO: extract from the model
+    base_timestep = float(model.module.base_time_step) * ase.units.fs
 
     dt = sim.simulation.syslist[0].motion.dt * 2.4188843e-17 * ase.units.s
 
@@ -69,7 +64,7 @@ def ipi_to_system(motion, device, dtype):
             keys=Labels.single().to(device),
             blocks = [
                 TensorBlock(
-                    values=torch.tensor(momenta_torch, dtype=dtype, device=device).unsqueeze(-1),
+                    values=momenta_torch.unsqueeze(-1),
                     samples=Labels(
                         names=["system", "atom"],
                         values=torch.tensor([[0, j] for j in range(len(momenta_torch))], device=device),
@@ -86,7 +81,7 @@ def ipi_to_system(motion, device, dtype):
             keys=Labels.single().to(device),
             blocks = [
                 TensorBlock(
-                    values=torch.tensor(masses_torch, dtype=dtype, device=device).unsqueeze(-1),
+                    values=masses_torch.unsqueeze(-1),
                     samples=Labels(
                         names=["system", "atom"],
                         values=torch.tensor([[0, j] for j in range(len(masses_torch))], device=device),

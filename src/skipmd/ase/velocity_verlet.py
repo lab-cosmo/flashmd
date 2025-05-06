@@ -26,12 +26,7 @@ class VelocityVerlet(MolecularDynamics):
         models = model if isinstance(model, list) else [model]
         capabilities = models[0].capabilities()
 
-        base_timestep = (
-            0.5 * ase.units.fs
-            if capabilities.atomic_types == [1, 8]
-            else
-            1.0 * ase.units.fs  
-        )  # TODO: extract from the model
+        base_timestep = float(models[0].module.base_time_step) * ase.units.fs
 
         n_time_steps = int([k for k in capabilities.outputs.keys() if "mtt::delta_" in k][0].split("_")[1])
         if n_time_steps != self.dt / base_timestep:
