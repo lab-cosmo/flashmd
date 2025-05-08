@@ -28,18 +28,33 @@ def get_skipmd_velocity_verlet_step(sim, model, device):
     dtype = getattr(torch, capabilities.dtype)
     stepper = SkipMDStepper([model], n_time_steps, device)
 
-    def skipmd_vv(motion, rescale_energy=True):
+    def skipmd_vv(motion, rescale_energy=True, constant_com=True):
         
         if rescale_energy:
             old_energy = sim.properties("potential") + sim.properties("kinetic_md")
-        
+
+        # computes COM before the stepper
+        m3 = dstrip(motion.beads.m3)
+        m = dstrip(motion.beads.m).reshape(-1)
+        mcom = m.sum()            
+        vcom_old = dstrip(motion.beads.p[:]).reshape(-1, 3).sum(axis=0)/mcom
+        xcom_old = (dstrip(motion.beads.q)*m3).reshape(-1,3).sum(axis=0)/mcom
+
         system = ipi_to_system(motion, device, dtype)
         new_system = stepper.step(system)
         system_to_ipi(motion, new_system)
 
-        p = dstrip(motion.beads.p[:]).reshape(-1, 3)
-        p = p - np.mean(p, axis=0)
-        motion.beads.p[:] = p.flatten()
+        # enforces fixed COM velocity and consistent COM motion
+        if constant_com:
+            p = dstrip(motion.beads.p).reshape(-1,3)            
+            vcom = p.sum(axis=0)/mcom
+            xcom = (dstrip(motion.beads.q)*m3).reshape(-1,3).sum(axis=0)/mcom
+            # adjust momentum
+            motion.beads.p[:] = (p - (vcom-vcom_old)*m[:,np.newaxis]).flatten()
+            # adjust com motion to match constant com velocity
+            dxcom = vcom_old*motion.dt - (xcom - xcom_old)
+            motion.beads.q[:] = (dstrip(motion.beads.q).reshape(-1,3) + dxcom[np.newaxis,:]).flatten()
+            
 
         if rescale_energy:
             new_energy = sim.properties("potential") + sim.properties("kinetic_md")
