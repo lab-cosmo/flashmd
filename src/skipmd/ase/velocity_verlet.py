@@ -53,6 +53,7 @@ class VelocityVerlet(MolecularDynamics):
         new_system = self.stepper.step(system)
         self.atoms.set_positions(new_system.positions.detach().cpu().numpy())
         self.atoms.set_momenta(new_system.get_data("momenta").block().values.squeeze(-1).detach().cpu().numpy())
+        self.atoms.set_momenta(self.atoms.get_momenta() - np.mean(self.atoms.get_momenta(), axis=0))
 
         if self.rescale_energy:
             new_energy = self.atoms.get_total_energy()

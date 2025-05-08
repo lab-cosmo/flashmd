@@ -22,7 +22,7 @@ def get_energy_error(file_path, model_path, skipmd_model_path):
     delta_q_key = [k for k in skipmd_model.capabilities().outputs.keys() if "mtt::delta_" in k][0]
     n_steps = int(delta_q_key.split("_")[1].split("_")[0])
 
-    stepper = SkipMDStepper([skipmd_model], n_steps, torch.device(device), None)
+    stepper = SkipMDStepper([skipmd_model], n_steps, torch.device(device))
 
     structures = ase.io.read(file_path, index="::10")
 
@@ -46,9 +46,10 @@ def get_energy_error(file_path, model_path, skipmd_model_path):
     # plot scatter plot
     plt.scatter(energies_md, energies_skipmd, s=1)
     plt.xlabel("MD energy")
-    plt.ylabel("SkipMD energy")
-    plt.title(f"SkipMD vs MD energy (RMSE: {rmse:.8f})")
+    plt.ylabel("FlashMD energy")
+    plt.title(f"FlashMD vs MD energy (RMSE: {rmse:.8f})")
     plt.plot([min(energies_md), max(energies_md)], [min(energies_md), max(energies_md)], color='red', linestyle='--')
+    plt.tight_layout()
     plt.savefig("energy_error.pdf")
 
     # also plot the absolute error as a histogram
