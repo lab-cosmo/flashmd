@@ -3,6 +3,7 @@ from ipi.utils.mathtools import (
     random_rotation,
 )
 from ipi.engine.cell import GenericCell
+from ipi.engine import Motion
 
 from skipmd.stepper import SkipMDStepper
 import ase.units
@@ -39,10 +40,10 @@ def get_skipmd_velocity_verlet_step(sim, model, device):
 
         if rand_rot:
             # OBTAIN A RANDOM ROTATION
-            R = random_rotation(self.prng, improper=True)
+            R = random_rotation(motion.prng, improper=True)
 
             # APPLY RANDOM ROTATION TO SYSTEM
-            rot_motion = motion.clone()
+            rot_motion = clone_motion(motion)
             rot_motion.cell.h = GenericCell(
                 R @ dstrip(rot_motion.cell.h).copy()
             )
@@ -125,3 +126,19 @@ def ipi_to_system(motion, device, dtype):
 def system_to_ipi(motion, system):
     motion.beads.q[:] = system.positions.cpu().numpy().flatten() * ase.units.Angstrom / ase.units.Bohr
     motion.beads.p[:] = system.get_data("momenta").block().values.squeeze(-1).cpu().numpy().flatten() / ((9.1093819e-31 * ase.units.kg) * (ase.units.Bohr / ase.units.Angstrom) / (2.4188843e-17 * ase.units.s))
+
+def clone_motion(motion):
+
+    new_motion = Motion()
+
+    new_motion.bind(
+        ens = motion.ens.copy(),
+        beads = motion.beads.copy(),
+        nm = motion.nm.copy(),
+        cell = motion.cell.copy(),
+        bforce = motion.bforce.copy(),
+        prng = motion.prng.copy(),
+        omaker = motion.omaker.copy(),
+    )
+
+    return new_motion
