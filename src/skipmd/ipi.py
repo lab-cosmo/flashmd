@@ -3,7 +3,7 @@ from ipi.utils.mathtools import (
     random_rotation,
 )
 from ipi.engine.cell import GenericCell
-from ipi.engine import Motion
+from ipi.engine.motion import Motion
 
 from skipmd.stepper import SkipMDStepper
 import ase.units
