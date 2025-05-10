@@ -44,7 +44,7 @@ def get_skipmd_velocity_verlet_step(sim, model, device):
 
             # APPLY RANDOM ROTATION TO SYSTEM
             rot_motion = clone_motion(motion)
-            rot_motion.cell.h = GenericCell(
+            rot_motion.cell = GenericCell(
                 R @ dstrip(rot_motion.cell.h).copy()
             )
             rot_motion.beads.q[:] = (dstrip(rot_motion.beads.q).reshape(-1, 3) @ R.T).flatten()
@@ -128,17 +128,11 @@ def system_to_ipi(motion, system):
     motion.beads.p[:] = system.get_data("momenta").block().values.squeeze(-1).cpu().numpy().flatten() / ((9.1093819e-31 * ase.units.kg) * (ase.units.Bohr / ase.units.Angstrom) / (2.4188843e-17 * ase.units.s))
 
 def clone_motion(motion):
-
     new_motion = Motion()
-
-    new_motion.bind(
-        ens = motion.ens.copy(),
-        beads = motion.beads.copy(),
-        nm = motion.nm.copy(),
-        cell = motion.cell.copy(),
-        bforce = motion.bforce.copy(),
-        prng = motion.prng.copy(),
-        omaker = motion.omaker.copy(),
-    )
-
+    ens = motion.ensemble.copy()
+    beads = motion.beads.clone()
+    nm = motion.nm.copy()
+    cell = motion.cell.clone()
+    bforce = motion.forces.clone(beads,cell)
+    new_motion.bind(ens, beads, nm, cell, bforce, motion.prng, motion.output_maker)
     return new_motion
