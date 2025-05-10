@@ -1,4 +1,8 @@
 from ipi.utils.depend import dstrip
+from ipi.utils.mathtools import (
+    random_rotation,
+)
+from ipi.engine.cell import GenericCell
 
 from skipmd.stepper import SkipMDStepper
 import ase.units
@@ -28,14 +32,37 @@ def get_skipmd_velocity_verlet_step(sim, model, device):
     dtype = getattr(torch, capabilities.dtype)
     stepper = SkipMDStepper([model], n_time_steps, device)
 
-    def skipmd_vv(motion, rescale_energy=True):
-        
+    def skipmd_vv(motion, rescale_energy=True, rand_rot=False):
+
         if rescale_energy:
             old_energy = sim.properties("potential") + sim.properties("kinetic_md")
-        
-        system = ipi_to_system(motion, device, dtype)
+
+        if rand_rot:
+            # OBTAIN A RANDOM ROTATION
+            R = random_rotation(self.prng, improper=True)
+
+            # APPLY RANDOM ROTATION TO SYSTEM
+            rot_motion = motion.clone()
+            rot_motion.cell.h = GenericCell(
+                R @ dstrip(rot_motion.cell.h).copy()
+            )
+            rot_motion.beads.q[:] = (dstrip(rot_motion.beads.q).reshape(-1, 3) @ R.T).flatten()
+            rot_motion.beads.p[:] = (dstrip(rot_motion.beads.p).reshape(-1, 3) @ R.T).flatten()
+            system = ipi_to_system(rot_motion, device, dtype)
+        else:
+            system = ipi_to_system(motion, device, dtype)
+
         new_system = stepper.step(system)
-        system_to_ipi(motion, new_system)
+
+        if rand_rot:
+            system_to_ipi(rot_motion, new_system)
+            # UNDO THE RANDOM ROTATION ON Q AND P, WRITE TO "MAIN" MOTION
+            motion.beads.q[:] = (dstrip(rot_motion.beads.q).reshape(-1, 3) @ R).flatten()
+            motion.beads.p[:] = (dstrip(rot_motion.beads.p).reshape(-1, 3) @ R).flatten()
+
+        else:
+            system_to_ipi(motion, new_system)
+
         motion.integrator.pconstraints()
 
         if rescale_energy:
