@@ -10,24 +10,24 @@ import tqdm
 import ase.units
 from metatrain.utils.neighbor_lists import get_system_with_neighbor_lists
 import numpy as np
-from ..stepper import SkipMDStepper
+from ..stepper import FlashMDStepper
 from metatensor.torch import Labels, TensorBlock, TensorMap
 
 
-def get_energy_error(file_path, model_path, skipmd_model_path):
+def get_energy_error(file_path, model_path, flashmd_model_path):
     device = "cuda" if torch.cuda.is_available() else "cpu"
     calculator = MetatensorCalculator(model_path, extensions_directory="extensions_pet_mad/", device=device)
-    skipmd_model = load_atomistic_model(skipmd_model_path)
+    flashmd_model = load_atomistic_model(flashmd_model_path)
 
-    delta_q_key = [k for k in skipmd_model.capabilities().outputs.keys() if "mtt::delta_" in k][0]
+    delta_q_key = [k for k in flashmd_model.capabilities().outputs.keys() if "mtt::delta_" in k][0]
     n_steps = int(delta_q_key.split("_")[1].split("_")[0])
 
-    stepper = SkipMDStepper([skipmd_model], n_steps, torch.device(device))
+    stepper = FlashMDStepper([flashmd_model], n_steps, torch.device(device))
 
     structures = ase.io.read(file_path, index="::10")
 
     energies_md = []
-    energies_skipmd = []
+    energies_flashmd = []
 
     for structure in tqdm.tqdm(structures):
         atoms = copy.deepcopy(structure)
@@ -37,14 +37,14 @@ def get_energy_error(file_path, model_path, skipmd_model_path):
 
         new_system = stepper.step(system)
 
-        atoms_skipmd = _system_to_atoms(new_system)
-        atoms_skipmd.calc = calculator
-        energies_skipmd.append(atoms_skipmd.get_total_energy()/len(atoms))
+        atoms_flashmd = _system_to_atoms(new_system)
+        atoms_flashmd.calc = calculator
+        energies_flashmd.append(atoms_flashmd.get_total_energy()/len(atoms))
 
-    rmse = np.sqrt(np.mean((np.array(energies_md) - np.array(energies_skipmd))**2))
+    rmse = np.sqrt(np.mean((np.array(energies_md) - np.array(energies_flashmd))**2))
 
     # plot scatter plot
-    plt.scatter(energies_md, energies_skipmd, s=1)
+    plt.scatter(energies_md, energies_flashmd, s=1)
     plt.xlabel("MD energy")
     plt.ylabel("FlashMD energy")
     plt.title(f"FlashMD vs MD energy (RMSE: {rmse:.8f})")

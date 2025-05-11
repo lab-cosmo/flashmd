@@ -7,7 +7,7 @@ import torch
 from metatensor.torch.atomistic.ase_calculator import _ase_to_torch_data
 from metatensor.torch.atomistic import System
 import ase
-from ..stepper import SkipMDStepper
+from ..stepper import FlashMDStepper
 import numpy as np
 
 
@@ -41,7 +41,7 @@ class VelocityVerlet(MolecularDynamics):
         self.device = torch.device(device)
         self.dtype = getattr(torch, capabilities.dtype)
 
-        self.stepper = SkipMDStepper(models, n_time_steps, self.device)
+        self.stepper = FlashMDStepper(models, n_time_steps, self.device)
         self.rescale_energy = rescale_energy
 
     def step(self):

@@ -3,7 +3,7 @@ from ipi.utils.units import Constants
 from ipi.utils.mathtools import random_rotation as random_rotation_matrix
 from ipi.engine.motion.dynamics import NVEIntegrator, NVTIntegrator, NPTIntegrator
 
-from skipmd.stepper import SkipMDStepper
+from flashmd.stepper import FlashMDStepper
 import ase.units
 import torch
 import numpy as np
@@ -29,7 +29,7 @@ def get_flashmd_vv_step(sim, model, device, rescale_energy=True, random_rotation
 
     device = torch.device(device)
     dtype = getattr(torch, capabilities.dtype)
-    stepper = SkipMDStepper([model], n_time_steps, device)
+    stepper = FlashMDStepper([model], n_time_steps, device)
 
     def flashmd_vv(motion):
         if rescale_energy:

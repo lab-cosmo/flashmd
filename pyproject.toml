@@ -1,12 +1,12 @@
 [project]
-name = "skipmd"
+name = "flashmd"
 version = "0.1.0"
 requires-python = ">=3.9"
 
 readme = "README.md"
 license = {text = "Apache-2.0"}
 description = "Accelerated molecular dynamics with large-time-step predictions"
-authors = [{name = "skipmd developers"}]
+authors = [{name = "flashmd developers"}]
 
 dependencies = [
     "ase",

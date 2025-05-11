@@ -13,7 +13,7 @@ from typing import List, Optional
 from metatensor.torch.atomistic import MetatensorAtomisticModel
 
 
-class SkipMDStepper:
+class FlashMDStepper:
     def __init__(
         self,
         models: List[MetatensorAtomisticModel],
