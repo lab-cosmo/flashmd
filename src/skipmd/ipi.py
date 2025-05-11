@@ -3,7 +3,6 @@ from ipi.utils.mathtools import (
     random_rotation,
 )
 from ipi.engine.cell import GenericCell
-from ipi.engine.motion import Motion
 
 from skipmd.stepper import SkipMDStepper
 import ase.units
@@ -35,42 +34,38 @@ def get_skipmd_velocity_verlet_step(sim, model, device):
 
     def skipmd_vv(motion, rescale_energy=True, rand_rot=False):
 
-        if rescale_energy:
-            old_energy = sim.properties("potential") + sim.properties("kinetic_md")
 
         if rand_rot:
             # OBTAIN A RANDOM ROTATION
             R = random_rotation(motion.prng, improper=True)
-
             # APPLY RANDOM ROTATION TO SYSTEM
-            rot_motion = clone_motion(motion)
-            rot_motion.cell = GenericCell(
-                R @ dstrip(rot_motion.cell.h).copy()
-            )
-            rot_motion.beads.q[:] = (dstrip(rot_motion.beads.q).reshape(-1, 3) @ R.T).flatten()
-            rot_motion.beads.p[:] = (dstrip(rot_motion.beads.p).reshape(-1, 3) @ R.T).flatten()
-            system = ipi_to_system(rot_motion, device, dtype)
-        else:
-            system = ipi_to_system(motion, device, dtype)
-
+            orig_cell_h = dstrip(motion.cell.h).copy()
+            motion.cell = GenericCell(R @ dstrip(motion.cell.h).copy())
+            motion.beads.q[:] = (dstrip(motion.beads.q).reshape(-1, 3) @ R.T).flatten()
+            motion.beads.p[:] = (dstrip(motion.beads.p).reshape(-1, 3) @ R.T).flatten()
+       
+        if rescale_energy:
+            old_energy = sim.properties("potential") + sim.properties("kinetic_md")
+            old_kinetic_energy = sim.properties("kinetic_md")
+ 
+        system = ipi_to_system(motion, device, dtype)
         new_system = stepper.step(system)
-
-        if rand_rot:
-            system_to_ipi(rot_motion, new_system)
-            # UNDO THE RANDOM ROTATION ON Q AND P, WRITE TO "MAIN" MOTION
-            motion.beads.q[:] = (dstrip(rot_motion.beads.q).reshape(-1, 3) @ R).flatten()
-            motion.beads.p[:] = (dstrip(rot_motion.beads.p).reshape(-1, 3) @ R).flatten()
-
-        else:
-            system_to_ipi(motion, new_system)
-
-        motion.integrator.pconstraints()
+        system_to_ipi(motion, new_system)
 
         if rescale_energy:
             new_energy = sim.properties("potential") + sim.properties("kinetic_md")
-            old_kinetic_energy = sim.properties("kinetic_md")
             alpha = np.sqrt(1.0 - (new_energy - old_energy) / old_kinetic_energy)
             motion.beads.p[:] = alpha * dstrip(motion.beads.p)
+
+        if rand_rot:
+            system_to_ipi(motion, new_system)
+            # UNDO THE RANDOM ROTATION ON Q AND P, WRITE TO "MAIN" MOTION
+            motion.cell = GenericCell(orig_cell_h)
+            motion.beads.q[:] = (dstrip(motion.beads.q).reshape(-1, 3) @ R).flatten()
+            motion.beads.p[:] = (dstrip(motion.beads.p).reshape(-1, 3) @ R).flatten()
+
+        motion.integrator.pconstraints()
+
 
     return skipmd_vv
 
@@ -127,12 +122,3 @@ def system_to_ipi(motion, system):
     motion.beads.q[:] = system.positions.cpu().numpy().flatten() * ase.units.Angstrom / ase.units.Bohr
     motion.beads.p[:] = system.get_data("momenta").block().values.squeeze(-1).cpu().numpy().flatten() / ((9.1093819e-31 * ase.units.kg) * (ase.units.Bohr / ase.units.Angstrom) / (2.4188843e-17 * ase.units.s))
 
-def clone_motion(motion):
-    new_motion = Motion()
-    ens = motion.ensemble.copy()
-    beads = motion.beads.clone()
-    nm = motion.nm.copy()
-    cell = motion.cell.clone()
-    bforce = motion.forces.clone(beads,cell)
-    new_motion.bind(ens, beads, nm, cell, bforce, motion.prng, motion.output_maker)
-    return new_motion
