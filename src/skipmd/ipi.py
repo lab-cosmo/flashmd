@@ -1,6 +1,7 @@
 from ipi.utils.depend import dstrip
+from ipi.utils.units import Constants
 from ipi.utils.mathtools import random_rotation as random_rotation_matrix
-from ipi.engine.cell import GenericCell
+from ipi.engine.motion.dynamics import NVEIntegrator, NVTIntegrator, NPTIntegrator
 
 from skipmd.stepper import SkipMDStepper
 import ase.units
@@ -12,7 +13,7 @@ from metatensor.torch.atomistic import System
 from metatensor.torch import Labels, TensorBlock, TensorMap
 
 
-def get_skipmd_velocity_verlet_step(sim, model, device):
+def get_flashmd_vv_step(sim, model, device, rescale_energy=True, random_rotation=False):
 
     capabilities = model.capabilities()
 
@@ -30,7 +31,7 @@ def get_skipmd_velocity_verlet_step(sim, model, device):
     dtype = getattr(torch, capabilities.dtype)
     stepper = SkipMDStepper([model], n_time_steps, device)
 
-    def skipmd_vv(motion, rescale_energy=True, random_rotation=False):
+    def flashmd_vv(motion):
         if rescale_energy:
             old_energy = sim.properties("potential") + sim.properties("kinetic_md")
 
@@ -65,8 +66,99 @@ def get_skipmd_velocity_verlet_step(sim, model, device):
             motion.beads.p[:] = alpha * dstrip(motion.beads.p)
         motion.integrator.pconstraints()
 
-    return skipmd_vv
+    return flashmd_vv
 
+def get_nve_stepper(sim, model, device, rescale_energy=True, random_rotation=False):
+    motion = sim.simulation.syslist[0].motion
+    if type(motion.integrator) is not NVEIntegrator:
+        raise TypeError(f"Base i-PI integrator is of type {motion.integrator.__class__.__name__}, use a NVE setup.")
+
+
+    flashmd_vv_step = get_flashmd_vv_step(sim, model, device, rescale_energy, random_rotation)
+    def nve_stepper(motion, *_, **__):
+        flashmd_vv_step(motion)
+        motion.ensemble.time += self.dt
+
+    return nve_stepper
+
+    
+def get_nvt_stepper(sim, model, device, rescale_energy=True, random_rotation=False):
+    motion = sim.simulation.syslist[0].motion
+    if type(motion.integrator) is not NVTIntegrator:
+        raise TypeError(f"Base i-PI integrator is of type {motion.integrator.__class__.__name__}, use a NVT setup.")
+
+
+    flashmd_vv_step = get_flashmd_vv_step(sim, model, device, rescale_energy, random_rotation)
+    def nvt_stepper(motion, *_, **__):
+        # OBABO splitting of a NVT propagator
+        motion.thermostat.step()
+        motion.integrator.pconstraints()        
+        flashmd_vv_step(motion)
+        motion.thermostat.step()
+        motion.integrator.pconstraints()
+        motion.ensemble.time += self.dt
+
+    return nvt_stepper
+
+def _qbaro(baro):
+    """Propagation step for the cell volume (adjusting atomic positions and momenta)."""
+
+    v = baro.p[0] / baro.m[0]
+    halfdt = (
+        baro.qdt
+    )  # this is set to half the inner loop in all integrators that use a barostat
+    expq, expp = (np.exp(v * halfdt), np.exp(-v * halfdt))
+
+    m = dstrip(baro.beads.m3)[0]
+
+    baro.nm.qnm[0, :] *= expq
+    baro.nm.pnm[0, :] *= expp
+    baro.cell.h *= expq
+
+def _pbaro(baro):
+    """Propagation step for the cell momentum (adjusting atomic positions and momenta)."""
+
+    # we are assuming then that p the coupling between p^2 and dp/dt only involves the fast force
+    dt = baro.pdt[0]
+
+    # computes the pressure associated with the forces at the outer level MTS level.
+    press = np.trace(baro.stress_mts(0)) / 3.0
+    # integerates the kinetic part of the pressure with the force at the inner-most level.
+    nbeads = baro.beads.nbeads
+    baro.p += (
+        3.0 * dt * (
+            baro.cell.V * (press - nbeads * baro.pext) + Constants.kb * baro.temp
+        )
+    )
+
+
+def get_npt_stepper(sim, model, device, rescale_energy=True, random_rotation=False):
+    motion = sim.simulation.syslist[0].motion
+    if type(motion.integrator) is not NPTIntegrator:
+        raise TypeError(f"Base i-PI integrator is of type {motion.integrator.__class__.__name__}, use a NPT setup.")
+
+
+    flashmd_vv_step = get_flashmd_vv_step(sim, model, device, rescale_energy, random_rotation)
+
+    # The barostat here needs a simpler splitting than for BZP, something as 
+    # OAbBbBABbAbPO where Bp and Ap are the cell momentum and volume steps
+    def npt_stepper(motion, *_, **__):
+        motion.thermostat.step()
+        motion.integrator.pconstraints()
+        motion.barostat.thermostat.step()
+        _qbaro(motion.barostat)
+        _pbaro(motion.barostat)
+
+        flashmd_vv_step(motion)
+
+        _pbaro(motion.barostat)
+        _qbaro(motion.barostat)
+        motion.barostat.thermostat.step()
+        motion.thermostat.step()
+        motion.integrator.pconstraints()
+        motion.ensemble.time += self.dt
+
+    return npt_stepper
 
 def ipi_to_system(motion, device, dtype):
     positions = dstrip(motion.beads.q).reshape(-1, 3) * ase.units.Bohr / ase.units.Angstrom
