@@ -51,12 +51,13 @@ def get_skipmd_velocity_verlet_step(sim, model, device):
         new_system = stepper.step(system)
 
         if random_rotation:
-            # UNDO THE RANDOM ROTATION ON Q AND P, WRITE TO "MAIN" MOTION
+            # UNDO THE RANDOM ROTATION ON Q AND P (SKIP CELL AS `system_to_ipi` IGNORES IT)
             new_system.positions = new_system.positions@R
             momenta = new_system.get_data("momenta").block(0).values.squeeze()
             momenta[:] = momenta@R
 
         system_to_ipi(motion, new_system)
+        motion.integrator.pconstraints()
 
         if rescale_energy:
             new_energy = sim.properties("potential") + sim.properties("kinetic_md")
