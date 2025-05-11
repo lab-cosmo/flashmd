@@ -37,20 +37,20 @@ def get_skipmd_velocity_verlet_step(sim, model, device):
         system = ipi_to_system(motion, device, dtype)
 
         if random_rotation:
-            # OBTAIN A RANDOM ROTATION
+            # generate a random rotation matrix
             R = torch.tensor(random_rotation_matrix(motion.prng, improper=True),
                              device=system.positions.device,
                              dtype=system.positions.dtype)
-            # APPLY RANDOM ROTATION TO SYSTEM
+            # applies the random rotation 
             system.cell = system.cell@R.T
             system.positions = system.positions@R.T
             momenta = system.get_data("momenta").block(0).values.squeeze()
-            momenta[:] = momenta@R.T
+            momenta[:] = momenta@R.T # does the change in place
 
         new_system = stepper.step(system)
 
         if random_rotation:
-            # UNDO THE RANDOM ROTATION ON Q AND P (SKIP CELL AS `system_to_ipi` IGNORES IT)
+            # revert q,p to the original reference frame (`system_to_ipi` ignores the cell)
             new_system.positions = new_system.positions@R
             momenta = new_system.get_data("momenta").block(0).values.squeeze()
             momenta[:] = momenta@R
@@ -63,9 +63,7 @@ def get_skipmd_velocity_verlet_step(sim, model, device):
             kinetic_energy = sim.properties("kinetic_md")
             alpha = np.sqrt(1.0 - (new_energy - old_energy) / kinetic_energy)
             motion.beads.p[:] = alpha * dstrip(motion.beads.p)
-
         motion.integrator.pconstraints()
-
 
     return skipmd_vv
 
