@@ -33,7 +33,6 @@ def get_skipmd_velocity_verlet_step(sim, model, device):
     def skipmd_vv(motion, rescale_energy=True, random_rotation=False):
         if rescale_energy:
             old_energy = sim.properties("potential") + sim.properties("kinetic_md")
-            old_kinetic_energy = sim.properties("kinetic_md")
 
         system = ipi_to_system(motion, device, dtype)
 
@@ -61,7 +60,8 @@ def get_skipmd_velocity_verlet_step(sim, model, device):
 
         if rescale_energy:
             new_energy = sim.properties("potential") + sim.properties("kinetic_md")
-            alpha = np.sqrt(1.0 - (new_energy - old_energy) / old_kinetic_energy)
+            kinetic_energy = sim.properties("kinetic_md")
+            alpha = np.sqrt(1.0 - (new_energy - old_energy) / kinetic_energy)
             motion.beads.p[:] = alpha * dstrip(motion.beads.p)
 
         motion.integrator.pconstraints()
