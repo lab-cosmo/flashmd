@@ -72,8 +72,7 @@ def get_skipmd_velocity_verlet_step(sim, model, device):
 def ipi_to_system(motion, device, dtype):
     positions = dstrip(motion.beads.q).reshape(-1, 3) * ase.units.Bohr / ase.units.Angstrom
     positions_torch = torch.tensor(positions, device=device, dtype=dtype)
-    # TODO - CHECK CELL CONVENTION, I THINK WE NEED A TRANSPOSE HERE
-    cell = dstrip(motion.cell.h) * ase.units.Bohr / ase.units.Angstrom
+    cell = dstrip(motion.cell.h).T * ase.units.Bohr / ase.units.Angstrom
     cell_torch = torch.tensor(cell, device=device, dtype=dtype)
     pbc_torch = torch.tensor([True, True, True], device=device, dtype=torch.bool)
     momenta = dstrip(motion.beads.p).reshape(-1, 3) * (9.1093819e-31 * ase.units.kg) * (ase.units.Bohr / ase.units.Angstrom) / (2.4188843e-17 * ase.units.s)
@@ -119,6 +118,7 @@ def ipi_to_system(motion, device, dtype):
     return system
 
 def system_to_ipi(motion, system):
+    # only needs to convert positions and momenta, it's assumed that the cell won't be changed
     motion.beads.q[:] = system.positions.cpu().numpy().flatten() * ase.units.Angstrom / ase.units.Bohr
     motion.beads.p[:] = system.get_data("momenta").block().values.squeeze(-1).cpu().numpy().flatten() / ((9.1093819e-31 * ase.units.kg) * (ase.units.Bohr / ase.units.Angstrom) / (2.4188843e-17 * ase.units.s))
 
