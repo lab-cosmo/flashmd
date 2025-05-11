@@ -77,6 +77,7 @@ def get_nve_stepper(sim, model, device, rescale_energy=True, random_rotation=Fal
     flashmd_vv_step = get_flashmd_vv_step(sim, model, device, rescale_energy, random_rotation)
     def nve_stepper(motion, *_, **__):
         flashmd_vv_step(motion)
+        motion.ensemble.time += self.dt
 
     return nve_stepper
 
@@ -94,7 +95,8 @@ def get_nvt_stepper(sim, model, device, rescale_energy=True, random_rotation=Fal
         motion.integrator.pconstraints()        
         flashmd_vv_step(motion)
         motion.thermostat.step()
-        motion.integrator.pconstraints()        
+        motion.integrator.pconstraints()
+        motion.ensemble.time += self.dt
 
     return nvt_stepper
 
@@ -154,6 +156,7 @@ def get_npt_stepper(sim, model, device, rescale_energy=True, random_rotation=Fal
         motion.barostat.thermostat.step()
         motion.thermostat.step()
         motion.integrator.pconstraints()
+        motion.ensemble.time += self.dt
 
     return npt_stepper
 
