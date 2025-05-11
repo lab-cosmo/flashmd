@@ -1,7 +1,5 @@
 from ipi.utils.depend import dstrip
-from ipi.utils.mathtools import (
-    random_rotation,
-)
+from ipi.utils.mathtools import random_rotation as random_rotation_matrix
 from ipi.engine.cell import GenericCell
 
 from skipmd.stepper import SkipMDStepper
@@ -32,37 +30,38 @@ def get_skipmd_velocity_verlet_step(sim, model, device):
     dtype = getattr(torch, capabilities.dtype)
     stepper = SkipMDStepper([model], n_time_steps, device)
 
-    def skipmd_vv(motion, rescale_energy=True, rand_rot=False):
-
-
-        if rand_rot:
-            # OBTAIN A RANDOM ROTATION
-            R = random_rotation(motion.prng, improper=True)
-            # APPLY RANDOM ROTATION TO SYSTEM
-            orig_cell_h = dstrip(motion.cell.h).copy()
-            motion.cell = GenericCell(R @ dstrip(motion.cell.h).copy())
-            motion.beads.q[:] = (dstrip(motion.beads.q).reshape(-1, 3) @ R.T).flatten()
-            motion.beads.p[:] = (dstrip(motion.beads.p).reshape(-1, 3) @ R.T).flatten()
-       
+    def skipmd_vv(motion, rescale_energy=True, random_rotation=False):
         if rescale_energy:
             old_energy = sim.properties("potential") + sim.properties("kinetic_md")
             old_kinetic_energy = sim.properties("kinetic_md")
- 
+
         system = ipi_to_system(motion, device, dtype)
+
+        if random_rotation:
+            # OBTAIN A RANDOM ROTATION
+            R = torch.tensor(random_rotation_matrix(motion.prng, improper=True),
+                             device=system.positions.device,
+                             dtype=system.positions.dtype)
+            # APPLY RANDOM ROTATION TO SYSTEM
+            system.cell = system.cell@R.T
+            system.positions = system.positions@R.T
+            momenta = system.get_data("momenta").block(0).values.squeeze()
+            momenta[:] = momenta@R.T
+
         new_system = stepper.step(system)
+
+        if random_rotation:
+            # UNDO THE RANDOM ROTATION ON Q AND P, WRITE TO "MAIN" MOTION
+            new_system.positions = new_system.positions@R
+            momenta = new_system.get_data("momenta").block(0).values.squeeze()
+            momenta[:] = momenta@R
+
         system_to_ipi(motion, new_system)
 
         if rescale_energy:
             new_energy = sim.properties("potential") + sim.properties("kinetic_md")
             alpha = np.sqrt(1.0 - (new_energy - old_energy) / old_kinetic_energy)
             motion.beads.p[:] = alpha * dstrip(motion.beads.p)
-
-        if rand_rot:
-            system_to_ipi(motion, new_system)
-            # UNDO THE RANDOM ROTATION ON Q AND P, WRITE TO "MAIN" MOTION
-            motion.cell = GenericCell(orig_cell_h)
-            motion.beads.q[:] = (dstrip(motion.beads.q).reshape(-1, 3) @ R).flatten()
-            motion.beads.p[:] = (dstrip(motion.beads.p).reshape(-1, 3) @ R).flatten()
 
         motion.integrator.pconstraints()
 
@@ -73,6 +72,7 @@ def get_skipmd_velocity_verlet_step(sim, model, device):
 def ipi_to_system(motion, device, dtype):
     positions = dstrip(motion.beads.q).reshape(-1, 3) * ase.units.Bohr / ase.units.Angstrom
     positions_torch = torch.tensor(positions, device=device, dtype=dtype)
+    # TODO - CHECK CELL CONVENTION, I THINK WE NEED A TRANSPOSE HERE
     cell = dstrip(motion.cell.h) * ase.units.Bohr / ase.units.Angstrom
     cell_torch = torch.tensor(cell, device=device, dtype=dtype)
     pbc_torch = torch.tensor([True, True, True], device=device, dtype=torch.bool)
