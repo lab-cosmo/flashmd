@@ -1,6 +1,6 @@
 from ipi.utils.depend import dstrip
 from ipi.utils.mathtools import random_rotation as random_rotation_matrix
-from ipi.engine.cell import GenericCell
+from ipi.engine.motion.dynamics import NVEIntegrator, NVTIntegrator, NPTIntegrator
 
 from skipmd.stepper import SkipMDStepper
 import ase.units
@@ -12,7 +12,7 @@ from metatensor.torch.atomistic import System
 from metatensor.torch import Labels, TensorBlock, TensorMap
 
 
-def get_skipmd_velocity_verlet_step(sim, model, device):
+def get_flashmd_vv_step(sim, model, device, rescale_energy=True, random_rotation=False):
 
     capabilities = model.capabilities()
 
@@ -30,7 +30,7 @@ def get_skipmd_velocity_verlet_step(sim, model, device):
     dtype = getattr(torch, capabilities.dtype)
     stepper = SkipMDStepper([model], n_time_steps, device)
 
-    def skipmd_vv(motion, rescale_energy=True, random_rotation=False):
+    def flashmd_vv(motion):
         if rescale_energy:
             old_energy = sim.properties("potential") + sim.properties("kinetic_md")
 
@@ -65,7 +65,20 @@ def get_skipmd_velocity_verlet_step(sim, model, device):
             motion.beads.p[:] = alpha * dstrip(motion.beads.p)
         motion.integrator.pconstraints()
 
-    return skipmd_vv
+    return flashmd_vv
+
+def get_nve_stepper(sim, model, device, rescale_energy=True, random_rotation=False):
+    motion = sim.simulation.syslist[0].motion
+    print("integrator check ", motion.integrator, type(motion.integrator) is NVEIntegrator)
+    if type(motion.integrator) is not NVEIntegrator:
+        raise TypeError(f"Base i-PI integrator is of type {motion.integrator.__class__.__name__}, use a NVE setup.")
+
+
+    flashmd_vv_step = get_flashmd_vv_step(sim, model, device, rescale_energy, random_rotation)
+    def nve_stepper(motion, *_, **__):
+        flashmd_vv_step(motion)
+
+    return nve_stepper
 
 
 def ipi_to_system(motion, device, dtype):
