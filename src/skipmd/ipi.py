@@ -1,4 +1,6 @@
 from ipi.utils.depend import dstrip
+from ipi.utils.mathtools import random_rotation as random_rotation_matrix
+from ipi.engine.cell import GenericCell
 
 from skipmd.stepper import SkipMDStepper
 import ase.units
@@ -28,21 +30,40 @@ def get_skipmd_velocity_verlet_step(sim, model, device):
     dtype = getattr(torch, capabilities.dtype)
     stepper = SkipMDStepper([model], n_time_steps, device)
 
-    def skipmd_vv(motion, rescale_energy=True):
-        
+    def skipmd_vv(motion, rescale_energy=True, random_rotation=False):
         if rescale_energy:
             old_energy = sim.properties("potential") + sim.properties("kinetic_md")
-        
+
         system = ipi_to_system(motion, device, dtype)
+
+        if random_rotation:
+            # generate a random rotation matrix
+            R = torch.tensor(random_rotation_matrix(motion.prng, improper=True),
+                             device=system.positions.device,
+                             dtype=system.positions.dtype)
+            # applies the random rotation 
+            system.cell = system.cell@R.T
+            system.positions = system.positions@R.T
+            momenta = system.get_data("momenta").block(0).values.squeeze()
+            momenta[:] = momenta@R.T # does the change in place
+
         new_system = stepper.step(system)
+
+        if random_rotation:
+            # revert q,p to the original reference frame (`system_to_ipi` ignores the cell)
+            new_system.positions = new_system.positions@R
+            momenta = new_system.get_data("momenta").block(0).values.squeeze()
+            momenta[:] = momenta@R
+
         system_to_ipi(motion, new_system)
         motion.integrator.pconstraints()
 
         if rescale_energy:
             new_energy = sim.properties("potential") + sim.properties("kinetic_md")
-            old_kinetic_energy = sim.properties("kinetic_md")
-            alpha = np.sqrt(1.0 - (new_energy - old_energy) / old_kinetic_energy)
+            kinetic_energy = sim.properties("kinetic_md")
+            alpha = np.sqrt(1.0 - (new_energy - old_energy) / kinetic_energy)
             motion.beads.p[:] = alpha * dstrip(motion.beads.p)
+        motion.integrator.pconstraints()
 
     return skipmd_vv
 
@@ -50,7 +71,7 @@ def get_skipmd_velocity_verlet_step(sim, model, device):
 def ipi_to_system(motion, device, dtype):
     positions = dstrip(motion.beads.q).reshape(-1, 3) * ase.units.Bohr / ase.units.Angstrom
     positions_torch = torch.tensor(positions, device=device, dtype=dtype)
-    cell = dstrip(motion.cell.h) * ase.units.Bohr / ase.units.Angstrom
+    cell = dstrip(motion.cell.h).T * ase.units.Bohr / ase.units.Angstrom
     cell_torch = torch.tensor(cell, device=device, dtype=dtype)
     pbc_torch = torch.tensor([True, True, True], device=device, dtype=torch.bool)
     momenta = dstrip(motion.beads.p).reshape(-1, 3) * (9.1093819e-31 * ase.units.kg) * (ase.units.Bohr / ase.units.Angstrom) / (2.4188843e-17 * ase.units.s)
@@ -96,5 +117,7 @@ def ipi_to_system(motion, device, dtype):
     return system
 
 def system_to_ipi(motion, system):
+    # only needs to convert positions and momenta, it's assumed that the cell won't be changed
     motion.beads.q[:] = system.positions.cpu().numpy().flatten() * ase.units.Angstrom / ase.units.Bohr
     motion.beads.p[:] = system.get_data("momenta").block().values.squeeze(-1).cpu().numpy().flatten() / ((9.1093819e-31 * ase.units.kg) * (ase.units.Bohr / ase.units.Angstrom) / (2.4188843e-17 * ase.units.s))
+
