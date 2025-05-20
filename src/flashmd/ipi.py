@@ -1,5 +1,6 @@
 from ipi.utils.depend import dstrip
 from ipi.utils.units import Constants
+from ipi.utils.messages import verbosity, info
 from ipi.utils.mathtools import random_rotation as random_rotation_matrix
 from ipi.engine.motion.dynamics import NVEIntegrator, NVTIntegrator, NPTIntegrator
 
@@ -19,7 +20,7 @@ def get_flashmd_vv_step(sim, model, device, rescale_energy=True, random_rotation
 
     base_timestep = float(model.module.base_time_step) * ase.units.fs
 
-    dt = sim.simulation.syslist[0].motion.dt * 2.4188843e-17 * ase.units.s
+    dt = sim.syslist[0].motion.dt * 2.4188843e-17 * ase.units.s
 
     n_time_steps = int([k for k in capabilities.outputs.keys() if "mtt::delta_" in k][0].split("_")[1])
     if not np.allclose(dt, n_time_steps * base_timestep):
@@ -32,11 +33,14 @@ def get_flashmd_vv_step(sim, model, device, rescale_energy=True, random_rotation
     stepper = FlashMDStepper([model], n_time_steps, device)
 
     def flashmd_vv(motion):
+        info("@flashmd: Starting VV", verbosity.debug)        
         if rescale_energy:
+            info("@flashmd: Old energy", verbosity.debug)
             old_energy = sim.properties("potential") + sim.properties("kinetic_md")
 
+        info("@flashmd: Stepper", verbosity.debug)
         system = ipi_to_system(motion, device, dtype)
-
+        
         if random_rotation:
             # generate a random rotation matrix
             R = torch.tensor(random_rotation_matrix(motion.prng, improper=True),
@@ -56,20 +60,23 @@ def get_flashmd_vv_step(sim, model, device, rescale_energy=True, random_rotation
             momenta = new_system.get_data("momenta").block(0).values.squeeze()
             momenta[:] = momenta@R
 
+        info("@flashmd: System to ipi", verbosity.debug)
         system_to_ipi(motion, new_system)
+        info("@flashmd: VV P constraints", verbosity.debug)
         motion.integrator.pconstraints()
 
         if rescale_energy:
+            info("@flashmd: Energy rescale", verbosity.debug)
             new_energy = sim.properties("potential") + sim.properties("kinetic_md")
             kinetic_energy = sim.properties("kinetic_md")
             alpha = np.sqrt(1.0 - (new_energy - old_energy) / kinetic_energy)
             motion.beads.p[:] = alpha * dstrip(motion.beads.p)
         motion.integrator.pconstraints()
-
+        info("@flashmd: End of VV step", verbosity.debug)
     return flashmd_vv
 
 def get_nve_stepper(sim, model, device, rescale_energy=True, random_rotation=False):
-    motion = sim.simulation.syslist[0].motion
+    motion = sim.syslist[0].motion
     if type(motion.integrator) is not NVEIntegrator:
         raise TypeError(f"Base i-PI integrator is of type {motion.integrator.__class__.__name__}, use a NVE setup.")
 
@@ -83,7 +90,7 @@ def get_nve_stepper(sim, model, device, rescale_energy=True, random_rotation=Fal
 
     
 def get_nvt_stepper(sim, model, device, rescale_energy=True, random_rotation=False):
-    motion = sim.simulation.syslist[0].motion
+    motion = sim.syslist[0].motion
     if type(motion.integrator) is not NVTIntegrator:
         raise TypeError(f"Base i-PI integrator is of type {motion.integrator.__class__.__name__}, use a NVT setup.")
 
@@ -133,7 +140,7 @@ def _pbaro(baro):
 
 
 def get_npt_stepper(sim, model, device, rescale_energy=True, random_rotation=False):
-    motion = sim.simulation.syslist[0].motion
+    motion = sim.syslist[0].motion
     if type(motion.integrator) is not NPTIntegrator:
         raise TypeError(f"Base i-PI integrator is of type {motion.integrator.__class__.__name__}, use a NPT setup.")
 
@@ -143,20 +150,32 @@ def get_npt_stepper(sim, model, device, rescale_energy=True, random_rotation=Fal
     # The barostat here needs a simpler splitting than for BZP, something as 
     # OAbBbBABbAbPO where Bp and Ap are the cell momentum and volume steps
     def npt_stepper(motion, *_, **__):
+
+        info("@flashmd: Starting NPT step", verbosity.debug)
+        info("@flashmd: Particle thermo", verbosity.debug)
         motion.thermostat.step()
+        info("@flashmd: P constraints", verbosity.debug)
         motion.integrator.pconstraints()
+        info("@flashmd: Barostat thermo", verbosity.debug)
         motion.barostat.thermostat.step()
+        info("@flashmd: Barostat q", verbosity.debug)
         _qbaro(motion.barostat)
+        info("@flashmd: Barostat p", verbosity.debug)
         _pbaro(motion.barostat)
-
+        info("@flashmd: FlashVV", verbosity.debug)
         flashmd_vv_step(motion)
-
+        info("@flashmd: Barostat p", verbosity.debug)
         _pbaro(motion.barostat)
+        info("@flashmd: Barostat q", verbosity.debug)
         _qbaro(motion.barostat)
+        info("@flashmd: Barostat thermo", verbosity.debug)
         motion.barostat.thermostat.step()
+        info("@flashmd: Particle thermo", verbosity.debug)
         motion.thermostat.step()
+        info("@flashmd: P constraints", verbosity.debug)
         motion.integrator.pconstraints()
         motion.ensemble.time += motion.dt
+        info("@flashmd: NPT Step finished", verbosity.debug)
 
     return npt_stepper
 
