@@ -15,7 +15,7 @@ from metatensor.torch.atomistic import System
 from metatensor.torch import Labels, TensorBlock, TensorMap
 
 
-def get_flashmd_vv_step(sim, model, device, rescale_energy=True, random_rotation=False, eqp_every=0, eqp_factor=0.0):
+def get_flashmd_vv_step(sim, model, device, rescale_energy=True, random_rotation=False, eqp_nstep=0, eqp_factor=0.0):
 
     capabilities = model.capabilities()
 
@@ -34,8 +34,8 @@ def get_flashmd_vv_step(sim, model, device, rescale_energy=True, random_rotation
     stepper = FlashMDStepper([model], n_time_steps, device)
     num_atoms = len(sim.syslist[0].motion.beads.names)
 
-    if eqp_every < 0:
-        raise ValueError(f"eqp_every = {eqp_every} is an invalid value! Should be a positive integer, or 0 to turn off equipartition enforcement.")
+    if eqp_nstep < 0:
+        raise ValueError(f"eqp_nstep = {eqp_nstep} is an invalid value! Should be a positive integer, or 0 to turn off equipartition enforcement.")
     if eqp_factor < 0:
         raise ValueError(f"eqp_factor = {eqp_factor} is an invalid value! Keep it between 0 and 1.")
 
@@ -75,7 +75,7 @@ def get_flashmd_vv_step(sim, model, device, rescale_energy=True, random_rotation
         if rescale_energy:
 
             # Atomic equipartition enforcement
-            if eqp_factor > 0 and sim.properties("step") // eqp_every == 0:
+            if eqp_factor > 0 and eqp_nstep > 0 and sim.properties("step") // eqp_nstep == 0:
                 at_ke_target = sim.properties("kinetic_md") / num_atoms
                 eqp_at_factor = np.zeros(num_atoms)
 
@@ -98,13 +98,13 @@ def get_flashmd_vv_step(sim, model, device, rescale_energy=True, random_rotation
         info("@flashmd: End of VV step", verbosity.debug)
     return flashmd_vv
 
-def get_nve_stepper(sim, model, device, rescale_energy=True, random_rotation=False, eqp_factor=0.0):
+def get_nve_stepper(sim, model, device, rescale_energy=True, random_rotation=False, eqp_nstep=0, eqp_factor=0.0):
     motion = sim.syslist[0].motion
     if type(motion.integrator) is not NVEIntegrator:
         raise TypeError(f"Base i-PI integrator is of type {motion.integrator.__class__.__name__}, use a NVE setup.")
 
 
-    flashmd_vv_step = get_flashmd_vv_step(sim, model, device, rescale_energy, random_rotation, eqp_factor)
+    flashmd_vv_step = get_flashmd_vv_step(sim, model, device, rescale_energy, random_rotation, eqp_nstep, eqp_factor)
     def nve_stepper(motion, *_, **__):
         flashmd_vv_step(motion)
         motion.ensemble.time += motion.dt
@@ -112,13 +112,13 @@ def get_nve_stepper(sim, model, device, rescale_energy=True, random_rotation=Fal
     return nve_stepper
 
     
-def get_nvt_stepper(sim, model, device, rescale_energy=True, random_rotation=False, eqp_factor=0.0):
+def get_nvt_stepper(sim, model, device, rescale_energy=True, random_rotation=False, eqp_nstep=0, eqp_factor=0.0):
     motion = sim.syslist[0].motion
     if type(motion.integrator) is not NVTIntegrator:
         raise TypeError(f"Base i-PI integrator is of type {motion.integrator.__class__.__name__}, use a NVT setup.")
 
 
-    flashmd_vv_step = get_flashmd_vv_step(sim, model, device, rescale_energy, random_rotation, eqp_factor)
+    flashmd_vv_step = get_flashmd_vv_step(sim, model, device, rescale_energy, random_rotation, eqp_nstep, eqp_factor)
     def nvt_stepper(motion, *_, **__):
         # OBABO splitting of a NVT propagator
         motion.thermostat.step()
@@ -162,13 +162,13 @@ def _pbaro(baro):
     )
 
 
-def get_npt_stepper(sim, model, device, rescale_energy=True, random_rotation=False, eqp_factor=0.0):
+def get_npt_stepper(sim, model, device, rescale_energy=True, random_rotation=False, eqp_nstep=0, eqp_factor=0.0):
     motion = sim.syslist[0].motion
     if type(motion.integrator) is not NPTIntegrator:
         raise TypeError(f"Base i-PI integrator is of type {motion.integrator.__class__.__name__}, use a NPT setup.")
 
 
-    flashmd_vv_step = get_flashmd_vv_step(sim, model, device, rescale_energy, random_rotation, eqp_factor)
+    flashmd_vv_step = get_flashmd_vv_step(sim, model, device, rescale_energy, random_rotation, eqp_nstep, eqp_factor)
 
     # The barostat here needs a simpler splitting than for BZP, something as 
     # OAbBbBABbAbPO where Bp and Ap are the cell momentum and volume steps
