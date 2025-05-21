@@ -21,7 +21,7 @@ def get_flashmd_vv_step(sim, model, device, rescale_energy=True, random_rotation
 
     base_timestep = float(model.module.base_time_step) * ase.units.fs
 
-    dt = sim.syslist[0].motion.dt * 2.4188843e-17 * ase.units.s
+    dt = sim.simulation.syslist[0].motion.dt * 2.4188843e-17 * ase.units.s
 
     n_time_steps = int([k for k in capabilities.outputs.keys() if "mtt::delta_" in k][0].split("_")[1])
     if not np.allclose(dt, n_time_steps * base_timestep):
@@ -33,10 +33,10 @@ def get_flashmd_vv_step(sim, model, device, rescale_energy=True, random_rotation
     dtype = getattr(torch, capabilities.dtype)
     stepper = FlashMDStepper([model], n_time_steps, device)
 
-    num_atoms = len(sim.syslist[0].motion.beads)
+    num_atoms = len(sim.simulation.yslist[0].motion.beads)
     atypes = {lambda: 0}
     atom_idx = {}
-    names = sim.syslist[0].motion.beads.names
+    names = sim.simulation.syslist[0].motion.beads.names
     for name in names:
         atypes[name] += 1
     for name in atypes.keys():
@@ -104,7 +104,7 @@ def get_flashmd_vv_step(sim, model, device, rescale_energy=True, random_rotation
     return flashmd_vv
 
 def get_nve_stepper(sim, model, device, rescale_energy=True, random_rotation=False, eqp_factor=0.0):
-    motion = sim.syslist[0].motion
+    motion = sim.simulation.syslist[0].motion
     if type(motion.integrator) is not NVEIntegrator:
         raise TypeError(f"Base i-PI integrator is of type {motion.integrator.__class__.__name__}, use a NVE setup.")
 
@@ -118,7 +118,7 @@ def get_nve_stepper(sim, model, device, rescale_energy=True, random_rotation=Fal
 
     
 def get_nvt_stepper(sim, model, device, rescale_energy=True, random_rotation=False, eqp_factor=0.0):
-    motion = sim.syslist[0].motion
+    motion = sim.simulation.syslist[0].motion
     if type(motion.integrator) is not NVTIntegrator:
         raise TypeError(f"Base i-PI integrator is of type {motion.integrator.__class__.__name__}, use a NVT setup.")
 
@@ -168,7 +168,7 @@ def _pbaro(baro):
 
 
 def get_npt_stepper(sim, model, device, rescale_energy=True, random_rotation=False, eqp_factor=0.0):
-    motion = sim.syslist[0].motion
+    motion = sim.simulation.syslist[0].motion
     if type(motion.integrator) is not NPTIntegrator:
         raise TypeError(f"Base i-PI integrator is of type {motion.integrator.__class__.__name__}, use a NPT setup.")
 
