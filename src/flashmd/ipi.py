@@ -21,7 +21,7 @@ def get_flashmd_vv_step(sim, model, device, rescale_energy=True, random_rotation
 
     base_timestep = float(model.module.base_time_step) * ase.units.fs
 
-    dt = sim.simulation.syslist[0].motion.dt * 2.4188843e-17 * ase.units.s
+    dt = sim.syslist[0].motion.dt * 2.4188843e-17 * ase.units.s
 
     n_time_steps = int([k for k in capabilities.outputs.keys() if "mtt::delta_" in k][0].split("_")[1])
     if not np.allclose(dt, n_time_steps * base_timestep):
@@ -32,7 +32,9 @@ def get_flashmd_vv_step(sim, model, device, rescale_energy=True, random_rotation
     device = torch.device(device)
     dtype = getattr(torch, capabilities.dtype)
     stepper = FlashMDStepper([model], n_time_steps, device)
-    num_atoms = len(sim.simulation.syslist[0].motion.beads.names)
+    num_atoms = len(sim.syslist[0].motion.beads.names)
+    if eqp_factor < 0 or eqp_factor > 1:
+        raise ValueError(f"eqp_factor = {eqp_factor} is an invalid value! Keep it between 0 and 1.")
 
     def flashmd_vv(motion):
         info("@flashmd: Starting VV", verbosity.debug)
@@ -73,12 +75,14 @@ def get_flashmd_vv_step(sim, model, device, rescale_energy=True, random_rotation
             if eqp_factor > 0:
                 at_ke_target = sim.properties("kinetic_md") / num_atoms
                 eqp_scale = np.zeros(num_atoms)
+
                 for ii in range(num_atoms):
                     cur_at_ke = sim.properties(f"kinetic_md({ii})")
-                    eqp_scale[ii] = np.sqrt(at_ke_target/cur_at_ke)
+                    eqp_scale[ii] = np.sqrt(at_ke_target / cur_at_ke)
                 alpha_eqp = 1 + eqp_factor * (eqp_scale - 1)
-                p_temp = alpha_eqp.reshape(-1, 1) * dstrip(motion.beads.p).reshape(-1, 3)
-                motion.beads.p[:] = p_temp.flatten()
+
+                p_scaled = alpha_eqp.reshape(-1, 1) * dstrip(motion.beads.p).reshape(-1, 3)
+                motion.beads.p[:] = p_scaled.flatten()
 
             # Global rescaling
             info("@flashmd: Energy rescale", verbosity.debug)
@@ -92,7 +96,7 @@ def get_flashmd_vv_step(sim, model, device, rescale_energy=True, random_rotation
     return flashmd_vv
 
 def get_nve_stepper(sim, model, device, rescale_energy=True, random_rotation=False, eqp_factor=0.0):
-    motion = sim.simulation.syslist[0].motion
+    motion = sim.syslist[0].motion
     if type(motion.integrator) is not NVEIntegrator:
         raise TypeError(f"Base i-PI integrator is of type {motion.integrator.__class__.__name__}, use a NVE setup.")
 
@@ -106,7 +110,7 @@ def get_nve_stepper(sim, model, device, rescale_energy=True, random_rotation=Fal
 
     
 def get_nvt_stepper(sim, model, device, rescale_energy=True, random_rotation=False, eqp_factor=0.0):
-    motion = sim.simulation.syslist[0].motion
+    motion = sim.syslist[0].motion
     if type(motion.integrator) is not NVTIntegrator:
         raise TypeError(f"Base i-PI integrator is of type {motion.integrator.__class__.__name__}, use a NVT setup.")
 
@@ -156,7 +160,7 @@ def _pbaro(baro):
 
 
 def get_npt_stepper(sim, model, device, rescale_energy=True, random_rotation=False, eqp_factor=0.0):
-    motion = sim.simulation.syslist[0].motion
+    motion = sim.syslist[0].motion
     if type(motion.integrator) is not NPTIntegrator:
         raise TypeError(f"Base i-PI integrator is of type {motion.integrator.__class__.__name__}, use a NPT setup.")
 
