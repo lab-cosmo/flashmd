@@ -34,7 +34,7 @@ def get_flashmd_vv_step(sim, model, device, rescale_energy=True, random_rotation
     stepper = FlashMDStepper([model], n_time_steps, device)
 
     num_atoms = len(sim.simulation.syslist[0].motion.beads)
-    atypes = {lambda: 0}
+    atypes = defaultdict(lambda: 0)
     atom_idx = {}
     names = sim.simulation.syslist[0].motion.beads.names
     for name in names:
