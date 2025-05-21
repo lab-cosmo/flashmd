@@ -15,7 +15,7 @@ from metatensor.torch.atomistic import System
 from metatensor.torch import Labels, TensorBlock, TensorMap
 
 
-def get_flashmd_vv_step(sim, model, device, rescale_energy=True, random_rotation=False, eqp_factor=0.0):
+def get_flashmd_vv_step(sim, model, device, rescale_energy=True, random_rotation=False, eqp_every=0, eqp_factor=0.0):
 
     capabilities = model.capabilities()
 
@@ -33,7 +33,10 @@ def get_flashmd_vv_step(sim, model, device, rescale_energy=True, random_rotation
     dtype = getattr(torch, capabilities.dtype)
     stepper = FlashMDStepper([model], n_time_steps, device)
     num_atoms = len(sim.syslist[0].motion.beads.names)
-    if eqp_factor < 0 or eqp_factor > 1:
+
+    if eqp_every < 0:
+        raise ValueError(f"eqp_every = {eqp_every} is an invalid value! Should be a positive integer, or 0 to turn off equipartition enforcement.")
+    if eqp_factor < 0:
         raise ValueError(f"eqp_factor = {eqp_factor} is an invalid value! Keep it between 0 and 1.")
 
     def flashmd_vv(motion):
@@ -72,14 +75,14 @@ def get_flashmd_vv_step(sim, model, device, rescale_energy=True, random_rotation
         if rescale_energy:
 
             # Atomic equipartition enforcement
-            if eqp_factor > 0:
+            if eqp_factor > 0 and sim.properties("step") // eqp_every == 0:
                 at_ke_target = sim.properties("kinetic_md") / num_atoms
-                eqp_scale = np.zeros(num_atoms)
+                eqp_at_factor = np.zeros(num_atoms)
 
                 for ii in range(num_atoms):
                     cur_at_ke = sim.properties(f"kinetic_md({ii})")
-                    eqp_scale[ii] = np.sqrt(at_ke_target / cur_at_ke)
-                alpha_eqp = 1 + eqp_factor * (eqp_scale - 1)
+                    eqp_at_factor[ii] = np.sqrt(at_ke_target / cur_at_ke)
+                alpha_eqp = 1 + eqp_factor * (eqp_at_factor - 1)
 
                 p_scaled = alpha_eqp.reshape(-1, 1) * dstrip(motion.beads.p).reshape(-1, 3)
                 motion.beads.p[:] = p_scaled.flatten()
