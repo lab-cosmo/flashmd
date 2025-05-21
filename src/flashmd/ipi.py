@@ -32,8 +32,7 @@ def get_flashmd_vv_step(sim, model, device, rescale_energy=True, random_rotation
     device = torch.device(device)
     dtype = getattr(torch, capabilities.dtype)
     stepper = FlashMDStepper([model], n_time_steps, device)
-    num_atoms = len(sim.simulation.syslist[0].motion.beads)
-    print("num_atoms: ", num_atoms)
+    num_atoms = len(sim.simulation.syslist[0].motion.beads.names)
 
     def flashmd_vv(motion):
         info("@flashmd: Starting VV", verbosity.debug)
@@ -74,12 +73,12 @@ def get_flashmd_vv_step(sim, model, device, rescale_energy=True, random_rotation
             if eqp_factor > 0:
                 at_ke_target = sim.properties("kinetic_md") / num_atoms
                 eqp_scale = np.zeros(num_atoms)
-                for ii in len(num_atoms):
+                for ii in range(num_atoms):
                     cur_at_ke = sim.properties(f"kinetic_md({ii})")
                     eqp_scale[ii] = np.sqrt(at_ke_target/cur_at_ke)
                 alpha_eqp = 1 + eqp_factor * (eqp_scale - 1)
-                print("alpha_equi shape: ", alpha_eqp.shape)
-                motion.beads.p[:] = alpha_eqp * dstrip(motion.beads.p)
+                p_temp = alpha_eqp.reshape(-1, 1) * dstrip(motion.beads.p).reshape(-1, 3)
+                motion.beads.p[:] = p_temp.flatten()
 
             # Global rescaling
             info("@flashmd: Energy rescale", verbosity.debug)
