@@ -9,12 +9,13 @@ import ase.units
 import torch
 import numpy as np
 import ase.data
+from collections import defaultdict
 
 from metatensor.torch.atomistic import System
 from metatensor.torch import Labels, TensorBlock, TensorMap
 
 
-def get_flashmd_vv_step(sim, model, device, rescale_energy=True, random_rotation=False):
+def get_flashmd_vv_step(sim, model, device, rescale_energy=True, random_rotation=False, eqp_factor=0.0):
 
     capabilities = model.capabilities()
 
@@ -32,15 +33,26 @@ def get_flashmd_vv_step(sim, model, device, rescale_energy=True, random_rotation
     dtype = getattr(torch, capabilities.dtype)
     stepper = FlashMDStepper([model], n_time_steps, device)
 
+    num_atoms = len(sim.syslist[0].motion.beads)
+    atypes = {lambda: 0}
+    atom_idx = {}
+    names = sim.syslist[0].motion.beads.names
+    for name in names:
+        atypes[name] += 1
+    for name in atypes.keys():
+        atom_idx[name] = np.where(names == name)
+
+    print("atypes: ", atypes)
+
     def flashmd_vv(motion):
-        info("@flashmd: Starting VV", verbosity.debug)        
-        if rescale_energy:
+        info("@flashmd: Starting VV", verbosity.debug)
+        if rescale_energy:  
             info("@flashmd: Old energy", verbosity.debug)
             old_energy = sim.properties("potential") + sim.properties("kinetic_md")
 
         info("@flashmd: Stepper", verbosity.debug)
         system = ipi_to_system(motion, device, dtype)
-        
+
         if random_rotation:
             # generate a random rotation matrix
             R = torch.tensor(random_rotation_matrix(motion.prng, improper=True),
@@ -56,7 +68,7 @@ def get_flashmd_vv_step(sim, model, device, rescale_energy=True, random_rotation
 
         if random_rotation:
             # revert q,p to the original reference frame (`system_to_ipi` ignores the cell)
-            new_system.positions = new_system.positions@R
+            new_system.positions = new_system.positions @ R
             momenta = new_system.get_data("momenta").block(0).values.squeeze()
             momenta[:] = momenta@R
 
@@ -66,22 +78,38 @@ def get_flashmd_vv_step(sim, model, device, rescale_energy=True, random_rotation
         motion.integrator.pconstraints()
 
         if rescale_energy:
+
+            # Equipartition enforcement
+            if eqp_factor > 0:
+                kinetic_energy = sim.properties("kinetic_md")
+
+                eqp_scale = np.zeros(num_atoms)
+                for at in atypes.keys():
+                    at_ke_target = kinetic_energy * atypes[at] / num_atoms
+                    cur_at_ke = sim.properties(f"kinetic_md({at})")
+                    eqp_scale[at_idx[at]] = np.sqrt(at_ke_target/cur_at_ke)
+
+                alpha_equi = 1 + eqp_factor * (eqp_scale - 1)
+                print("alpha_equi shape: ", alpha_equi.shape)
+                motion.beads.p[:] = alpha_equi * dstrip(motion.beads.p)
+
+            # Global rescaling
             info("@flashmd: Energy rescale", verbosity.debug)
             new_energy = sim.properties("potential") + sim.properties("kinetic_md")
-            kinetic_energy = sim.properties("kinetic_md")
-            alpha = np.sqrt(1.0 - (new_energy - old_energy) / kinetic_energy)
-            motion.beads.p[:] = alpha * dstrip(motion.beads.p)
+            alpha_t = np.sqrt(1.0 - (new_energy - old_energy) / kinetic_energy)
+            motion.beads.p[:] = alpha_t * dstrip(motion.beads.p)
+
         motion.integrator.pconstraints()
         info("@flashmd: End of VV step", verbosity.debug)
     return flashmd_vv
 
-def get_nve_stepper(sim, model, device, rescale_energy=True, random_rotation=False):
+def get_nve_stepper(sim, model, device, rescale_energy=True, random_rotation=Falsem, enforce_equipartition=0.0):
     motion = sim.syslist[0].motion
     if type(motion.integrator) is not NVEIntegrator:
         raise TypeError(f"Base i-PI integrator is of type {motion.integrator.__class__.__name__}, use a NVE setup.")
 
 
-    flashmd_vv_step = get_flashmd_vv_step(sim, model, device, rescale_energy, random_rotation)
+    flashmd_vv_step = get_flashmd_vv_step(sim, model, device, rescale_energy, random_rotation, enforce_equipartition)
     def nve_stepper(motion, *_, **__):
         flashmd_vv_step(motion)
         motion.ensemble.time += motion.dt
@@ -89,13 +117,13 @@ def get_nve_stepper(sim, model, device, rescale_energy=True, random_rotation=Fal
     return nve_stepper
 
     
-def get_nvt_stepper(sim, model, device, rescale_energy=True, random_rotation=False):
+def get_nvt_stepper(sim, model, device, rescale_energy=True, random_rotation=False, enforce_equipartition=0.0):
     motion = sim.syslist[0].motion
     if type(motion.integrator) is not NVTIntegrator:
         raise TypeError(f"Base i-PI integrator is of type {motion.integrator.__class__.__name__}, use a NVT setup.")
 
 
-    flashmd_vv_step = get_flashmd_vv_step(sim, model, device, rescale_energy, random_rotation)
+    flashmd_vv_step = get_flashmd_vv_step(sim, model, device, rescale_energy, random_rotation, enforce_equipartition)
     def nvt_stepper(motion, *_, **__):
         # OBABO splitting of a NVT propagator
         motion.thermostat.step()
@@ -139,13 +167,13 @@ def _pbaro(baro):
     )
 
 
-def get_npt_stepper(sim, model, device, rescale_energy=True, random_rotation=False):
+def get_npt_stepper(sim, model, device, rescale_energy=True, random_rotation=False, enforce_equipartition=0.0):
     motion = sim.syslist[0].motion
     if type(motion.integrator) is not NPTIntegrator:
         raise TypeError(f"Base i-PI integrator is of type {motion.integrator.__class__.__name__}, use a NPT setup.")
 
 
-    flashmd_vv_step = get_flashmd_vv_step(sim, model, device, rescale_energy, random_rotation)
+    flashmd_vv_step = get_flashmd_vv_step(sim, model, device, rescale_energy, random_rotation, enforce_equipartition)
 
     # The barostat here needs a simpler splitting than for BZP, something as 
     # OAbBbBABbAbPO where Bp and Ap are the cell momentum and volume steps
