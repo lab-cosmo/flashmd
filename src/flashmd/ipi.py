@@ -33,7 +33,6 @@ def get_flashmd_vv_step(sim, model, device, rescale_energy=True, random_rotation
     dtype = getattr(torch, capabilities.dtype)
     stepper = FlashMDStepper([model], n_time_steps, device)
     num_atoms = len(sim.syslist[0].motion.beads.names)
-    masses = sim.syslist[0].motion.beads.masses
 
     if eqp_nstep < 0:
         raise ValueError(f"eqp_nstep = {eqp_nstep} is an invalid value! Should be a positive integer, or 0 to turn off equipartition enforcement.")
@@ -74,15 +73,18 @@ def get_flashmd_vv_step(sim, model, device, rescale_energy=True, random_rotation
         motion.integrator.pconstraints()
 
         if rescale_energy:
+
             # Atomic equipartition enforcement
             if eqp_factor > 0 and eqp_nstep > 0 and sim.properties("step") % eqp_nstep == 0:
-                at_ke_target = sim.properties("kinetic_md") / num_atoms / 3  # per component
+                at_ke_target = sim.properties("kinetic_md") / 27.21138505 / num_atoms
                 p_raw = dstrip(motion.beads.p).reshape(-1, 3)
-                cur_at_ke_components = (p_raw ** 2) / (2 * masses)
-                eqp_at_factor = np.sqrt(at_ke_target / cur_at_ke_components)
+                cur_at_ke = (p_raw ** 2).sum(axis=1) / (2 * dstrip(motion.beads.m))
+                eqp_at_factor = np.sqrt(at_ke_target / (cur_at_ke))
                 alpha_eqp = 1 + eqp_factor * (eqp_at_factor - 1)
-                p_scaled = alpha_eqp * dstrip(motion.beads.p).reshape(-1, 3)
+                p_scaled = alpha_eqp.reshape(-1, 1) * p_raw
                 motion.beads.p[:] = p_scaled.flatten()
+                p_new = dstrip(motion.beads.p).reshape(-1, 3)
+                new_at_ke = (p_new ** 2).sum(axis=1) / (2 * dstrip(motion.beads.m))
 
             # Global rescaling
             info("@flashmd: Energy rescale", verbosity.debug)
