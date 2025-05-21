@@ -103,13 +103,13 @@ def get_flashmd_vv_step(sim, model, device, rescale_energy=True, random_rotation
         info("@flashmd: End of VV step", verbosity.debug)
     return flashmd_vv
 
-def get_nve_stepper(sim, model, device, rescale_energy=True, random_rotation=Falsem, enforce_equipartition=0.0):
+def get_nve_stepper(sim, model, device, rescale_energy=True, random_rotation=False, eqp_factor=0.0):
     motion = sim.syslist[0].motion
     if type(motion.integrator) is not NVEIntegrator:
         raise TypeError(f"Base i-PI integrator is of type {motion.integrator.__class__.__name__}, use a NVE setup.")
 
 
-    flashmd_vv_step = get_flashmd_vv_step(sim, model, device, rescale_energy, random_rotation, enforce_equipartition)
+    flashmd_vv_step = get_flashmd_vv_step(sim, model, device, rescale_energy, random_rotation, eqp_factor)
     def nve_stepper(motion, *_, **__):
         flashmd_vv_step(motion)
         motion.ensemble.time += motion.dt
@@ -117,13 +117,13 @@ def get_nve_stepper(sim, model, device, rescale_energy=True, random_rotation=Fal
     return nve_stepper
 
     
-def get_nvt_stepper(sim, model, device, rescale_energy=True, random_rotation=False, enforce_equipartition=0.0):
+def get_nvt_stepper(sim, model, device, rescale_energy=True, random_rotation=False, eqp_factor=0.0):
     motion = sim.syslist[0].motion
     if type(motion.integrator) is not NVTIntegrator:
         raise TypeError(f"Base i-PI integrator is of type {motion.integrator.__class__.__name__}, use a NVT setup.")
 
 
-    flashmd_vv_step = get_flashmd_vv_step(sim, model, device, rescale_energy, random_rotation, enforce_equipartition)
+    flashmd_vv_step = get_flashmd_vv_step(sim, model, device, rescale_energy, random_rotation, eqp_factor)
     def nvt_stepper(motion, *_, **__):
         # OBABO splitting of a NVT propagator
         motion.thermostat.step()
@@ -167,13 +167,13 @@ def _pbaro(baro):
     )
 
 
-def get_npt_stepper(sim, model, device, rescale_energy=True, random_rotation=False, enforce_equipartition=0.0):
+def get_npt_stepper(sim, model, device, rescale_energy=True, random_rotation=False, eqp_factor=0.0):
     motion = sim.syslist[0].motion
     if type(motion.integrator) is not NPTIntegrator:
         raise TypeError(f"Base i-PI integrator is of type {motion.integrator.__class__.__name__}, use a NPT setup.")
 
 
-    flashmd_vv_step = get_flashmd_vv_step(sim, model, device, rescale_energy, random_rotation, enforce_equipartition)
+    flashmd_vv_step = get_flashmd_vv_step(sim, model, device, rescale_energy, random_rotation, eqp_factor)
 
     # The barostat here needs a simpler splitting than for BZP, something as 
     # OAbBbBABbAbPO where Bp and Ap are the cell momentum and volume steps
