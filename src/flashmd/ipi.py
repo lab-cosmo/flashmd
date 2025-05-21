@@ -33,7 +33,7 @@ def get_flashmd_vv_step(sim, model, device, rescale_energy=True, random_rotation
     dtype = getattr(torch, capabilities.dtype)
     stepper = FlashMDStepper([model], n_time_steps, device)
 
-    num_atoms = len(sim.simulation.yslist[0].motion.beads)
+    num_atoms = len(sim.simulation.syslist[0].motion.beads)
     atypes = {lambda: 0}
     atom_idx = {}
     names = sim.simulation.syslist[0].motion.beads.names
