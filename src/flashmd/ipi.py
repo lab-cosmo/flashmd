@@ -32,17 +32,8 @@ def get_flashmd_vv_step(sim, model, device, rescale_energy=True, random_rotation
     device = torch.device(device)
     dtype = getattr(torch, capabilities.dtype)
     stepper = FlashMDStepper([model], n_time_steps, device)
-
     num_atoms = len(sim.simulation.syslist[0].motion.beads)
-    atypes = defaultdict(lambda: 0)
-    atom_idx = {}
-    names = sim.simulation.syslist[0].motion.beads.names
-    for name in names:
-        atypes[name] += 1
-    for name in atypes.keys():
-        atom_idx[name] = np.where(names == name)
-
-    print("atypes: ", atypes)
+    print("num_atoms: ", num_atoms)
 
     def flashmd_vv(motion):
         info("@flashmd: Starting VV", verbosity.debug)
@@ -79,23 +70,21 @@ def get_flashmd_vv_step(sim, model, device, rescale_energy=True, random_rotation
 
         if rescale_energy:
 
-            # Equipartition enforcement
+            # Atomic equipartition enforcement
             if eqp_factor > 0:
-                kinetic_energy = sim.properties("kinetic_md")
-
+                at_ke_target = sim.properties("kinetic_md") / num_atoms
                 eqp_scale = np.zeros(num_atoms)
-                for at in atypes.keys():
-                    at_ke_target = kinetic_energy * atypes[at] / num_atoms
-                    cur_at_ke = sim.properties(f"kinetic_md({at})")
-                    eqp_scale[at_idx[at]] = np.sqrt(at_ke_target/cur_at_ke)
-
-                alpha_equi = 1 + eqp_factor * (eqp_scale - 1)
-                print("alpha_equi shape: ", alpha_equi.shape)
-                motion.beads.p[:] = alpha_equi * dstrip(motion.beads.p)
+                for ii in len(num_atoms):
+                    cur_at_ke = sim.properties(f"kinetic_md({ii})")
+                    eqp_scale[ii] = np.sqrt(at_ke_target/cur_at_ke)
+                alpha_eqp = 1 + eqp_factor * (eqp_scale - 1)
+                print("alpha_equi shape: ", alpha_eqp.shape)
+                motion.beads.p[:] = alpha_eqp * dstrip(motion.beads.p)
 
             # Global rescaling
             info("@flashmd: Energy rescale", verbosity.debug)
-            new_energy = sim.properties("potential") + sim.properties("kinetic_md")
+            kinetic_energy = sim.properties("kinetic_md")
+            new_energy = sim.properties("potential") + kinetic_energy
             alpha_t = np.sqrt(1.0 - (new_energy - old_energy) / kinetic_energy)
             motion.beads.p[:] = alpha_t * dstrip(motion.beads.p)
 
