@@ -73,9 +73,8 @@ def get_flashmd_vv_step(sim, model, device, rescale_energy=True, random_rotation
         motion.integrator.pconstraints()
 
         if rescale_energy:
-
             # Atomic equipartition enforcement
-            if eqp_factor > 0 and eqp_nstep > 0 and sim.properties("step") // eqp_nstep == 0:
+            if eqp_factor > 0 and eqp_nstep > 0 and sim.properties("step") % eqp_nstep == 0:
                 at_ke_target = sim.properties("kinetic_md") / num_atoms
                 eqp_at_factor = np.zeros(num_atoms)
 
