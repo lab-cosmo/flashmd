@@ -13,6 +13,38 @@ import ase.data
 from metatensor.torch.atomistic import System
 from metatensor.torch import Labels, TensorBlock, TensorMap
 
+def get_vv_step(sim, rescale_energy=True):
+    """
+    Returns a velocity Verlet stepper function for i-PI simulations.
+    
+    Parameters:
+    - sim: The i-PI simulation object.
+    - rescale_energy: If True, rescales the kinetic energy after the step 
+        to maintain energy conservation.
+    
+    Returns:
+    - A function that performs a velocity Verlet step.
+    """
+
+    def vv_step(motion):
+
+        if rescale_energy:
+            info("@flashmd: Old energy", verbosity.debug)
+            old_energy = sim.properties("potential") + sim.properties("kinetic_md")
+
+        motion.integrator.pstep()
+        motion.integrator.qcstep()
+        motion.integrator.pstep()
+        motion.integrator.pconstraints()
+
+        if rescale_energy:
+            info("@flashmd: Energy rescale", verbosity.debug)
+            new_energy = sim.properties("potential") + sim.properties("kinetic_md")
+            kinetic_energy = sim.properties("kinetic_md")
+            alpha = np.sqrt(1.0 - (new_energy - old_energy) / kinetic_energy)
+            motion.beads.p[:] = alpha * dstrip(motion.beads.p)
+
+    return vv_step
 
 def get_flashmd_vv_step(sim, model, device, rescale_energy=True, random_rotation=False):
 
@@ -75,15 +107,17 @@ def get_flashmd_vv_step(sim, model, device, rescale_energy=True, random_rotation
         info("@flashmd: End of VV step", verbosity.debug)
     return flashmd_vv
 
-def get_nve_stepper(sim, model, device, rescale_energy=True, random_rotation=False):
+def get_nve_stepper(sim, model, device, rescale_energy=True, random_rotation=False, vv_step=None):
     motion = sim.syslist[0].motion
     if type(motion.integrator) is not NVEIntegrator:
         raise TypeError(f"Base i-PI integrator is of type {motion.integrator.__class__.__name__}, use a NVE setup.")
 
 
-    flashmd_vv_step = get_flashmd_vv_step(sim, model, device, rescale_energy, random_rotation)
+    if vv_step is None: # defaults to the FlashMD VV stepper
+        vv_step = get_flashmd_vv_step(sim, model, device, rescale_energy, random_rotation)
+    
     def nve_stepper(motion, *_, **__):
-        flashmd_vv_step(motion)
+        vv_step(motion)
         motion.ensemble.time += motion.dt
 
     return nve_stepper
@@ -95,12 +129,14 @@ def get_nvt_stepper(sim, model, device, rescale_energy=True, random_rotation=Fal
         raise TypeError(f"Base i-PI integrator is of type {motion.integrator.__class__.__name__}, use a NVT setup.")
 
 
-    flashmd_vv_step = get_flashmd_vv_step(sim, model, device, rescale_energy, random_rotation)
+    if vv_step is None: # defaults to the FlashMD VV stepper
+        vv_step = get_flashmd_vv_step(sim, model, device, rescale_energy, random_rotation)
+    
     def nvt_stepper(motion, *_, **__):
         # OBABO splitting of a NVT propagator
         motion.thermostat.step()
         motion.integrator.pconstraints()        
-        flashmd_vv_step(motion)
+        vv_step(motion)
         motion.thermostat.step()
         motion.integrator.pconstraints()
         motion.ensemble.time += motion.dt
@@ -145,8 +181,9 @@ def get_npt_stepper(sim, model, device, rescale_energy=True, random_rotation=Fal
         raise TypeError(f"Base i-PI integrator is of type {motion.integrator.__class__.__name__}, use a NPT setup.")
 
 
-    flashmd_vv_step = get_flashmd_vv_step(sim, model, device, rescale_energy, random_rotation)
-
+    if vv_step is None: # defaults to the FlashMD VV stepper
+        vv_step = get_flashmd_vv_step(sim, model, device, rescale_energy, random_rotation)
+    
     # The barostat here needs a simpler splitting than for BZP, something as 
     # OAbBbBABbAbPO where Bp and Ap are the cell momentum and volume steps
     def npt_stepper(motion, *_, **__):
@@ -163,7 +200,7 @@ def get_npt_stepper(sim, model, device, rescale_energy=True, random_rotation=Fal
         info("@flashmd: Barostat p", verbosity.debug)
         _pbaro(motion.barostat)
         info("@flashmd: FlashVV", verbosity.debug)
-        flashmd_vv_step(motion)
+        vv_step(motion)
         info("@flashmd: Barostat p", verbosity.debug)
         _pbaro(motion.barostat)
         info("@flashmd: Barostat q", verbosity.debug)
