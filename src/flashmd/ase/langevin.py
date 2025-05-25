@@ -2,6 +2,7 @@ from .velocity_verlet import VelocityVerlet
 import ase.units
 from ase.md.md import MolecularDynamics
 from typing import List
+
 # from ..utils.pretrained import load_pretrained_models
 from metatensor.torch.atomistic import MetatensorAtomisticModel
 from metatensor.torch import Labels, TensorBlock, TensorMap
@@ -24,7 +25,7 @@ class Langevin(VelocityVerlet):
         time_constant: float = 100.0 * ase.units.fs,
         device: str | torch.device = "auto",
         rescale_energy: bool = True,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(atoms, timestep, model, device, rescale_energy, **kwargs)
 
@@ -38,12 +39,11 @@ class Langevin(VelocityVerlet):
 
     def apply_langevin_half_step(self):
         old_momenta = self.atoms.get_momenta()
-        new_momenta = (
-            np.exp(-self.friction * 0.5 * self.dt) *
-            old_momenta +
-            np.sqrt(1.0 - np.exp(-self.friction * self.dt)) *
-            np.sqrt(ase.units.kB * self.temperature_K * self.atoms.get_masses()[:, None]) *
-            np.random.randn(*old_momenta.shape)
+        new_momenta = np.exp(-self.friction * 0.5 * self.dt) * old_momenta + np.sqrt(
+            1.0 - np.exp(-self.friction * self.dt)
+        ) * np.sqrt(
+            ase.units.kB * self.temperature_K * self.atoms.get_masses()[:, None]
+        ) * np.random.randn(
+            *old_momenta.shape
         )
         self.atoms.set_momenta(new_momenta)
-
