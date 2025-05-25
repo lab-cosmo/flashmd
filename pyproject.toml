@@ -10,7 +10,8 @@ authors = [{name = "flashmd developers"}]
 
 dependencies = [
     "ase",
-    "metatrain",
+    "pet-mad",
+    "huggingface_hub",
 ]
 
 keywords = ["machine learning", "molecular modeling", "molecular dynamics"]
