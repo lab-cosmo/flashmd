@@ -1,19 +1,11 @@
-from ase.md.md import MolecularDynamics
 
 # from ..utils.pretrained import load_pretrained_models
 from metatensor.torch.atomistic import ModelEvaluationOptions, ModelOutput
 from metatensor.torch import Labels, TensorBlock, TensorMap
-import ase.units
 import torch
-from metatensor.torch.atomistic.ase_calculator import (
-    _ase_to_torch_data,
-    _compute_ase_neighbors,
-)
 from metatensor.torch.atomistic import System
-import numpy as np
-import torch
 from metatrain.utils.neighbor_lists import get_system_with_neighbor_lists
-from typing import List, Optional
+from typing import List
 from metatensor.torch.atomistic import MetatensorAtomisticModel
 
 
@@ -27,7 +19,6 @@ class FlashMDStepper:
         # p_error_threshold: float = 0.1,
         # energy_error_threshold: float = 0.1,
     ):
-
         self.n_time_steps = n_time_steps
 
         # internally, turn list of models into a dict and send to device
@@ -53,7 +44,6 @@ class FlashMDStepper:
         self.device = device
 
     def step(self, system: System):
-
         if system.device.type != self.device.type:
             raise ValueError("System device does not match stepper device.")
         if system.positions.dtype != self.dtype:

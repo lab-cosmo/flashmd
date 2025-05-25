@@ -2,10 +2,8 @@ from .velocity_verlet import VelocityVerlet
 import ase.units
 from typing import List
 from metatensor.torch.atomistic import MetatensorAtomisticModel
-import ase.units
 import torch
 import ase
-from typing import Optional
 import numpy as np
 
 
@@ -32,7 +30,6 @@ class Bussi(VelocityVerlet):
         self.apply_bussi_half_step()
 
     def apply_bussi_half_step(self):
-
         old_kinetic_energy = self.atoms.get_kinetic_energy()
         n_degrees_of_freedom = 3 * len(self.atoms)
         target_kinetic_energy = (

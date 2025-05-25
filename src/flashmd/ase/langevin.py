@@ -1,17 +1,11 @@
 from .velocity_verlet import VelocityVerlet
 import ase.units
-from ase.md.md import MolecularDynamics
 from typing import List
 
 # from ..utils.pretrained import load_pretrained_models
 from metatensor.torch.atomistic import MetatensorAtomisticModel
-from metatensor.torch import Labels, TensorBlock, TensorMap
-import ase.units
 import torch
-from metatensor.torch.atomistic.ase_calculator import _ase_to_torch_data
-from metatensor.torch.atomistic import System
 import ase
-from typing import Optional
 import numpy as np
 
 
@@ -43,7 +37,5 @@ class Langevin(VelocityVerlet):
             1.0 - np.exp(-self.friction * self.dt)
         ) * np.sqrt(
             ase.units.kB * self.temperature_K * self.atoms.get_masses()[:, None]
-        ) * np.random.randn(
-            *old_momenta.shape
-        )
+        ) * np.random.randn(*old_momenta.shape)
         self.atoms.set_momenta(new_momenta)

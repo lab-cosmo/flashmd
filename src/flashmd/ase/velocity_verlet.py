@@ -49,7 +49,6 @@ class VelocityVerlet(MolecularDynamics):
         self.rescale_energy = rescale_energy
 
     def step(self):
-
         if self.rescale_energy:
             old_energy = self.atoms.get_total_energy()
 

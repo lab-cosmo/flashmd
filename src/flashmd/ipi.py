@@ -30,7 +30,6 @@ def get_standard_vv_step(
     """
 
     def vv_step(motion):
-
         if random_rotation:
             raise NotImplementedError(
                 "Random rotation is not implemented in the standard VV stepper."
@@ -56,7 +55,6 @@ def get_standard_vv_step(
 
 
 def get_flashmd_vv_step(sim, model, device, rescale_energy=True, random_rotation=False):
-
     capabilities = model.capabilities()
 
     base_timestep = float(model.module.base_time_step) * ase.units.fs
@@ -130,7 +128,6 @@ def get_nve_stepper(
     random_rotation=False,
     use_standard_vv=False,
 ):
-
     motion = sim.syslist[0].motion
     if type(motion.integrator) is not NVEIntegrator:
         raise TypeError(
@@ -201,8 +198,6 @@ def _qbaro(baro):
     )  # this is set to half the inner loop in all integrators that use a barostat
     expq, expp = (np.exp(v * halfdt), np.exp(-v * halfdt))
 
-    m = dstrip(baro.beads.m3)[0]
-
     baro.nm.qnm[0, :] *= expq
     baro.nm.pnm[0, :] *= expp
     baro.cell.h *= expq
@@ -253,7 +248,6 @@ def get_npt_stepper(
     # The barostat here needs a simpler splitting than for BZP, something as
     # OAbBbBABbAbPO where Bp and Ap are the cell momentum and volume steps
     def npt_stepper(motion, *_, **__):
-
         info("@flashmd: Starting NPT step", verbosity.debug)
         info("@flashmd: Particle thermo", verbosity.debug)
         motion.thermostat.step()
