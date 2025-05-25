@@ -39,9 +39,12 @@ def get_standard_vv_step(
             info("@flashmd: Old energy", verbosity.debug)
             old_energy = sim.properties("potential") + sim.properties("kinetic_md")
 
-        motion.integrator.pstep()
+        print(motion.integrator.pdt, motion.integrator.qdt)
+        motion.integrator.pstep(level=0)
+        motion.integrator.pconstraints()
+        motion.integrator.qcstep()  # does two steps because qdt is halved in the i-PI integrator
         motion.integrator.qcstep()
-        motion.integrator.pstep()
+        motion.integrator.pstep(level=0)
         motion.integrator.pconstraints()
 
         if rescale_energy:
