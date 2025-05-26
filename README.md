@@ -58,14 +58,15 @@ Other available integrators:
   from flashmd.ase.bussi import Bussi
 ```
 
-In most cases, we found Langevin dynamics to be more reliable than NVE dynamics or NVT dynamics
-using the Bussi thermostat. If you want to run molecular dynamics in the NPT ensemble, please use
-the i-PI version.
-
 Disclaimer
 ----------
 
 This is experimental software and should only be used if you know what you're doing.
-See the [cookbook recipe](http://atomistic-cookbook.org) for a usage example using i-PI, and
-[this preprint](http://arxiv.org) for a discussion of the theory, benchmarks, and 
-of the potential limitations.
+We recommend using the i-PI integrators for any serious work, and to perform constant
+pressure, NpT molecular dynamics. You can see
+[this cookbook recipe](https://atomistic-cookbook.org/examples/flashmd/flashmd-demo.html) 
+for a usage example.
+Given that the main issue we observe in direct MD trajectories is loss of equipartition
+of energy between different degrees of freedom, we recommend using a local Langevin
+thermostat, and to monitor the temperature of different atomic types or different
+parts of the simulated system. 
