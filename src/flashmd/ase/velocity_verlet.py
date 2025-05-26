@@ -60,7 +60,7 @@ class VelocityVerlet(MolecularDynamics):
         )
 
         if self.random_rotation:
-            # generate a random rotation matrix (with i-PI utils for consistency)
+            # generate a random rotation matrix with SciPy
             R = torch.tensor(
                 _random_R(),
                 device=system.positions.device,
