@@ -6,4 +6,5 @@ This repository contains model architectures and helper functions to use transfo
 This is experimental software and should only be used if you know what you're doing.
 See the [cookbook recipe](http://atomistic-cookbook.org) for a usage example, and
 [this preprint](http://arxiv.org) for a discussion of the theory, benchmarks, and 
-of the potential limitations. 
+of the potential limitations. Note that the ASE implementation is even more experimental
+than i-PI, and we strongly recommend the i-PI implementation over ASE.
