@@ -8,9 +8,9 @@ from metatensor.torch.atomistic.ase_calculator import _ase_to_torch_data
 from metatensor.torch.atomistic import System
 import ase
 from ..stepper import FlashMDStepper
+
 import numpy as np
-
-
+from scipy.spatial.transform import Rotation
 class VelocityVerlet(MolecularDynamics):
     def __init__(
         self,
@@ -19,6 +19,7 @@ class VelocityVerlet(MolecularDynamics):
         model: MetatensorAtomisticModel | List[MetatensorAtomisticModel],
         device: str | torch.device = "auto",
         rescale_energy: bool = True,
+        random_rotation: bool = False,
         **kwargs,
     ):
         super().__init__(atoms, timestep, **kwargs)
@@ -47,15 +48,39 @@ class VelocityVerlet(MolecularDynamics):
 
         self.stepper = FlashMDStepper(models, n_time_steps, self.device)
         self.rescale_energy = rescale_energy
+        self.random_rotation = random_rotation
 
     def step(self):
+
         if self.rescale_energy:
             old_energy = self.atoms.get_total_energy()
 
         system = _convert_atoms_to_system(
             self.atoms, device=self.device, dtype=self.dtype
         )
+
+        if self.random_rotation:
+            # generate a random rotation matrix (with i-PI utils for consistency)
+            R = torch.tensor(
+                _random_R(),
+                device=system.positions.device,
+                dtype=system.positions.dtype,
+            )
+            # apply the random rotation
+            system.cell = system.cell @ R.T
+            system.positions = system.positions @ R.T
+            momenta = system.get_data("momenta").block(0).values.squeeze()
+            momenta[:] = momenta @ R.T  # does the change in place
+
         new_system = self.stepper.step(system)
+
+        if self.random_rotation:
+            # revert q, p, and cell to the original reference frame
+            new_system.cell = system.cell @ R
+            new_system.positions = system.positions @ R
+            new_momenta = new_system.get_data("momenta").block(0).values.squeeze()
+            new_momenta[:] = new_momenta @ R
+
         self.atoms.set_positions(new_system.positions.detach().cpu().numpy())
         self.atoms.set_momenta(
             new_system.get_data("momenta")
@@ -126,3 +151,10 @@ def _convert_atoms_to_system(
         ),
     )
     return system
+
+
+def _random_R():
+    R = Rotation.random().as_matrix()
+    if np.random.rand() < 0.5:
+        R[:, 0] *= -1
+    return R
