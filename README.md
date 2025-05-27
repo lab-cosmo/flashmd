@@ -4,7 +4,7 @@ FlashMD: universal long-stride molecular dynamics
 This repository contains custom integrators to run MD trajectories with FlashMD models. These models are
 designed to learn and predict molecular dynamics trajectories using long strides, therefore allowing
 very large time steps. Before using this method, make sure you are aware of its limitations, which are
-discussed in [this preprint](http://arxiv.org).
+discussed in [this preprint](http://arxiv.org/abs/2505.19350).
 
 Quickstart
 ----------
