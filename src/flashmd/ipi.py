@@ -10,7 +10,7 @@ import torch
 import numpy as np
 import ase.data
 
-from metatensor.torch.atomistic import System
+from metatomic.torch import System
 from metatensor.torch import Labels, TensorBlock, TensorMap
 
 

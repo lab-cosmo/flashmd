@@ -3,7 +3,7 @@ import ase.units
 from typing import List
 
 # from ..utils.pretrained import load_pretrained_models
-from metatensor.torch.atomistic import MetatensorAtomisticModel
+from metatomic.torch import AtomisticModel
 import torch
 import ase
 import numpy as np
@@ -15,7 +15,7 @@ class Langevin(VelocityVerlet):
         atoms: ase.Atoms,
         timestep: float,
         temperature_K: float,
-        model: MetatensorAtomisticModel | List[MetatensorAtomisticModel],
+        model: AtomisticModel | List[AtomisticModel],
         time_constant: float = 100.0 * ase.units.fs,
         device: str | torch.device = "auto",
         rescale_energy: bool = True,

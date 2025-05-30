@@ -1,11 +1,11 @@
 from ase.md.md import MolecularDynamics
 from typing import List
-from metatensor.torch.atomistic import MetatensorAtomisticModel
+from metatomic.torch import AtomisticModel
 from metatensor.torch import Labels, TensorBlock, TensorMap
 import ase.units
 import torch
-from metatensor.torch.atomistic.ase_calculator import _ase_to_torch_data
-from metatensor.torch.atomistic import System
+from metatomic.torch.ase_calculator import _ase_to_torch_data
+from metatomic.torch import System
 import ase
 from ..stepper import FlashMDStepper
 import numpy as np
@@ -16,7 +16,7 @@ class VelocityVerlet(MolecularDynamics):
         self,
         atoms: ase.Atoms,
         timestep: float,
-        model: MetatensorAtomisticModel | List[MetatensorAtomisticModel],
+        model: AtomisticModel | List[AtomisticModel],
         device: str | torch.device = "auto",
         rescale_energy: bool = True,
         **kwargs,
