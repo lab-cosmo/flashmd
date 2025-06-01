@@ -1,17 +1,17 @@
 # from ..utils.pretrained import load_pretrained_models
-from metatensor.torch.atomistic import ModelEvaluationOptions, ModelOutput
+from metatomic.torch import ModelEvaluationOptions, ModelOutput
 from metatensor.torch import Labels, TensorBlock, TensorMap
 import torch
-from metatensor.torch.atomistic import System
+from metatomic.torch import System
 from metatrain.utils.neighbor_lists import get_system_with_neighbor_lists
 from typing import List
-from metatensor.torch.atomistic import MetatensorAtomisticModel
+from metatomic.torch import AtomisticModel
 
 
 class FlashMDStepper:
     def __init__(
         self,
-        models: List[MetatensorAtomisticModel],
+        models: List[AtomisticModel],
         n_time_steps: int,
         device: torch.device,
         # q_error_threshold: float = 0.1,
