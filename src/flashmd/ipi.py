@@ -39,7 +39,6 @@ def get_standard_vv_step(
             info("@flashmd: Old energy", verbosity.debug)
             old_energy = sim.properties("potential") + sim.properties("kinetic_md")
 
-        print(motion.integrator.pdt, motion.integrator.qdt)
         motion.integrator.pstep(level=0)
         motion.integrator.pconstraints()
         motion.integrator.qcstep()  # does two steps because qdt is halved in the i-PI integrator
@@ -60,21 +59,18 @@ def get_standard_vv_step(
 def get_flashmd_vv_step(sim, model, device, rescale_energy=True, random_rotation=False):
     capabilities = model.capabilities()
 
-    base_timestep = float(model.module.base_time_step) * ase.units.fs
+    model_timestep = float(model.module.timestep) * ase.units.fs
 
     dt = sim.syslist[0].motion.dt * 2.4188843e-17 * ase.units.s
 
-    n_time_steps = int(
-        [k for k in capabilities.outputs.keys() if "mtt::delta_" in k][0].split("_")[1]
-    )
-    if not np.allclose(dt, n_time_steps * base_timestep):
+    if not np.allclose(dt, model_timestep):
         raise ValueError(
-            f"Mismatch between timestep ({dt}) and model timestep ({base_timestep})."
+            f"Mismatch between timestep ({dt}) and model timestep ({model_timestep})."
         )
 
     device = torch.device(device)
     dtype = getattr(torch, capabilities.dtype)
-    stepper = FlashMDStepper([model], n_time_steps, device)
+    stepper = FlashMDStepper(model, device)
 
     def flashmd_vv(motion):
         info("@flashmd: Starting VV", verbosity.debug)

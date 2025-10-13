@@ -10,7 +10,7 @@ authors = [{name = "flashmd developers"}]
 
 dependencies = [
     "ase",
-    "pet-mad>=1.2.0",
+    "metatomic-torch",
     "huggingface_hub",
 ]
 
