@@ -41,17 +41,21 @@ def get_pretrained(mlip: str = "pet-omatpes", time_step: int = 16) -> AtomisticM
     # Now we need to export both using metatrain. However, we don't want to do it if
     # HuggingFace hasn't downloaded a new version of the files, so we only re-export
     # if the files above have changed in the last 10 seconds.
+    reexport = False
+    exported_mlip_path = mlip_path.replace(".ckpt", ".pt")
+    exported_flashmd_path = flashmd_path.replace(".ckpt", ".pt")
+    if not os.path.exists(exported_mlip_path) or not os.path.exists(exported_flashmd_path):
+        reexport = True
     mlip_mtime = os.path.getmtime(mlip_path)
     flashmd_mtime = os.path.getmtime(flashmd_path)
-    reexport = False
     if (time.time() - mlip_mtime < 10) or (time.time() - flashmd_mtime < 10):
         reexport = True
     if reexport:
-        subprocess.run(["mtt", "export", mlip_path])
-        subprocess.run(["mtt", "export", flashmd_path])
+        subprocess.run(["mtt", "export", mlip_path, "-o", exported_mlip_path], capture_output=True)
+        subprocess.run(["mtt", "export", flashmd_path, "-o", exported_flashmd_path], capture_output=True)
 
     # Load as AtomisticModel instances
-    mlip_model = load_atomistic_model(mlip_path.replace(".ckpt", ".pt"))
-    flashmd_model = load_atomistic_model(flashmd_path.replace(".ckpt", ".pt"))
+    mlip_model = load_atomistic_model(exported_mlip_path)
+    flashmd_model = load_atomistic_model(exported_flashmd_path)
 
     return mlip_model, flashmd_model

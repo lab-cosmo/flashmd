@@ -22,11 +22,14 @@ import ase.build
 import ase.units
 from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
 import torch
-from pet_mad.calculator import PETMADCalculator
+from metatomic.torch.ase_calculator import MetatomicCalculator
 
-from flashmd import get_universal_model
+from flashmd import get_pretrained
 from flashmd.ase.langevin import Langevin
 
+
+# Choose your time step (go for 10-30x what you would use in normal MD for your system)
+time_step = 16  # 16 fs; also available: 1, 2, 4, 8, 32, 64, 128 fs
 
 # Create a structure and initialize velocities
 atoms = ase.build.bulk("Al", "fcc", cubic=True)
@@ -34,10 +37,10 @@ MaxwellBoltzmannDistribution(atoms, temperature_K=300)
 
 # Load models
 device="cuda" if torch.cuda.is_available() else "cpu"
-calculator = PETMADCalculator("1.0.1", device=device)
+energy_model, flashmd_model = get_pretrained("pet-omatpes", 16)  
+
+calculator = MetatomicCalculator(energy_model, device=device)
 atoms.calc = calculator
-model = get_universal_model(16)  # 16 fs model; also available: 1, 4, 8, 32, 64 fs
-model = model.to(device)
 
 # Run MD
 dyn = Langevin(
@@ -45,11 +48,14 @@ dyn = Langevin(
     timestep=16*ase.units.fs,
     temperature_K=300,
     time_constant=100*ase.units.fs,
-    model=model,
+    model=flashmd_model,
     device=device
 )
 dyn.run(1000)
 ```
+
+[The first time you use this code and call the `get_pretrained` function, the
+pre-trained models will be downloaded. This might take a bit.]
 
 Other available integrators:
 
@@ -62,8 +68,8 @@ Disclaimer
 ----------
 
 This is experimental software and should only be used if you know what you're doing.
-We recommend using the i-PI integrators for any serious work, and to perform constant
-pressure, NpT molecular dynamics. You can see
+We recommend using the i-PI integrators for any serious work and/or if you need to perform
+constant-pressure (NPT) molecular dynamics. You can see
 [this cookbook recipe](https://atomistic-cookbook.org/examples/flashmd/flashmd-demo.html) 
 for a usage example.
 Given that the main issue we observe in direct MD trajectories is loss of equipartition

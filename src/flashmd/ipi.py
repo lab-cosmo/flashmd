@@ -59,13 +59,13 @@ def get_standard_vv_step(
 def get_flashmd_vv_step(sim, model, device, rescale_energy=True, random_rotation=False):
     capabilities = model.capabilities()
 
-    model_timestep = float(model.module.timestep) * ase.units.fs
+    model_timestep = float(model.module.timestep)
 
-    dt = sim.syslist[0].motion.dt * 2.4188843e-17 * ase.units.s
+    dt = sim.syslist[0].motion.dt * 2.4188843e-17 * ase.units.s / ase.units.fs
 
     if not np.allclose(dt, model_timestep):
         raise ValueError(
-            f"Mismatch between timestep ({dt}) and model timestep ({model_timestep})."
+            f"Mismatch between timestep ({dt} fs) and model timestep ({model_timestep} fs)."
         )
 
     device = torch.device(device)

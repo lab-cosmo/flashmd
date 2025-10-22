@@ -25,11 +25,11 @@ class VelocityVerlet(MolecularDynamics):
 
         capabilities = model.capabilities()
 
-        model_timestep = float(model.module.timestep) * ase.units.fs
-        if model_timestep != self.dt:
+        model_timestep = float(model.module.timestep)
+        if not np.allclose(model_timestep, self.dt / ase.units.fs):
             raise ValueError(
-                f"Mismatch between timestep ({self.dt}) "
-                f"and model timestep ({model_timestep})."
+                f"Mismatch between timestep ({self.dt / ase.units.fs} fs) "
+                f"and model timestep ({model_timestep} fs)."
             )
 
         if device == "auto":
