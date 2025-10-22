@@ -1,4 +1,4 @@
-from .models import get_universal_model as get_universal_model
+from .models import get_pretrained as get_pretrained
 
 import warnings
 

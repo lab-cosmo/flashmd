@@ -70,3 +70,27 @@ Given that the main issue we observe in direct MD trajectories is loss of equipa
 of energy between different degrees of freedom, we recommend using a local Langevin
 thermostat, and to monitor the temperature of different atomic types or different
 parts of the simulated system. 
+
+
+Publication
+-----------
+
+If you found FlashMD useful, you can cite the corresponding article:
+
+```
+@article{FlashMD,
+  title={FlashMD: long-stride, universal prediction of molecular dynamics},
+  author={Bigi, Filippo and Chong, Sanggyu and Kristiadi, Agustinus and Ceriotti, Michele},
+  journal={arXiv preprint arXiv:2505.19350},
+  year={2025}
+}
+```
+
+Reproducing the results in the article is supported with FlashMD v0.1.2:
+
+```bash
+pip install flashmd==0.1.2 ase==3.24.0 pet-mad==1.4.3
+```
+
+and using the "PET-MAD" models from https://huggingface.co/lab-cosmo/flashmd. Note that
+the results were obtained through the i-PI interface (as opposed to the ASE one).
