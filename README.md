@@ -6,6 +6,8 @@ designed to learn and predict molecular dynamics trajectories using long strides
 very large time steps. Before using this method, make sure you are aware of its limitations, which are
 discussed in [this preprint](http://arxiv.org/abs/2505.19350).
 
+The pre-trained models we make available are trained to reproduce ab-initio MD at the r2SCAN level of theory.
+
 Quickstart
 ----------
 
@@ -98,5 +100,5 @@ Reproducing the results in the article is supported with FlashMD v0.1.2:
 pip install flashmd==0.1.2 ase==3.24.0 pet-mad==1.4.3
 ```
 
-and using the "PET-MAD" models from https://huggingface.co/lab-cosmo/flashmd. Note that
-the results were obtained through the i-PI interface (as opposed to the ASE one).
+and using the "PET-MAD" models (PBEsol) from https://huggingface.co/lab-cosmo/flashmd.
+Note that the results were obtained through the i-PI interface.
