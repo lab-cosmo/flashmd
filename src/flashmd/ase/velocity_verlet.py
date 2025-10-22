@@ -23,19 +23,13 @@ class VelocityVerlet(MolecularDynamics):
     ):
         super().__init__(atoms, timestep, **kwargs)
 
-        models = model if isinstance(model, list) else [model]
-        capabilities = models[0].capabilities()
+        capabilities = model.capabilities()
 
-        base_timestep = float(models[0].module.base_time_step) * ase.units.fs
-
-        n_time_steps = int(
-            [k for k in capabilities.outputs.keys() if "mtt::delta_" in k][0].split(
-                "_"
-            )[1]
-        )
-        if n_time_steps != self.dt / base_timestep:
+        model_timestep = float(model.module.timestep)
+        if not np.allclose(model_timestep, self.dt / ase.units.fs):
             raise ValueError(
-                f"Mismatch between timestep ({self.dt}) and model timestep ({base_timestep})."
+                f"Mismatch between timestep ({self.dt / ase.units.fs} fs) "
+                f"and model timestep ({model_timestep} fs)."
             )
 
         if device == "auto":
@@ -45,7 +39,7 @@ class VelocityVerlet(MolecularDynamics):
         self.device = torch.device(device)
         self.dtype = getattr(torch, capabilities.dtype)
 
-        self.stepper = FlashMDStepper(models, n_time_steps, self.device)
+        self.stepper = FlashMDStepper(model, self.device)
         self.rescale_energy = rescale_energy
 
     def step(self):
