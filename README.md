@@ -37,7 +37,7 @@ MaxwellBoltzmannDistribution(atoms, temperature_K=300)
 
 # Load models
 device="cuda" if torch.cuda.is_available() else "cpu"
-energy_model, flashmd_model = get_pretrained("pet-omatpes", 16)  
+energy_model, flashmd_model = get_pretrained("pet-omatpes", time_step)  
 
 calculator = MetatomicCalculator(energy_model, device=device)
 atoms.calc = calculator
@@ -45,7 +45,7 @@ atoms.calc = calculator
 # Run MD
 dyn = Langevin(
     atoms=atoms,
-    timestep=16*ase.units.fs,
+    timestep=time_step*ase.units.fs,
     temperature_K=300,
     time_constant=100*ase.units.fs,
     model=flashmd_model,
