@@ -36,6 +36,7 @@ time_step = 16  # 16 fs; also available: 1, 2, 4, 8, 32, 64, 128 fs
 # Create a structure and initialize velocities
 atoms = ase.build.bulk("Al", "fcc", cubic=True)
 MaxwellBoltzmannDistribution(atoms, temperature_K=300)
+atoms.set_velocities(atoms.get_velocities() - atoms.get_velocities().mean(axis=0))
 
 # Load models
 device="cuda" if torch.cuda.is_available() else "cpu"

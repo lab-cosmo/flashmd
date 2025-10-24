@@ -20,7 +20,7 @@ class VelocityVerlet(MolecularDynamics):
         model: AtomisticModel | List[AtomisticModel],
         device: str | torch.device = "auto",
         rescale_energy: bool = True,
-        random_rotation: bool = True,
+        random_rotation: bool = False,
         **kwargs,
     ):
         super().__init__(atoms, timestep, **kwargs)

@@ -1,8 +1,6 @@
 from .velocity_verlet import VelocityVerlet
 import ase.units
 from typing import List
-
-# from ..utils.pretrained import load_pretrained_models
 from metatomic.torch import AtomisticModel
 import torch
 import ase
@@ -17,15 +15,19 @@ class Langevin(VelocityVerlet):
         temperature_K: float,
         model: AtomisticModel | List[AtomisticModel],
         time_constant: float = 100.0 * ase.units.fs,
+        fixcm: bool = True,
         device: str | torch.device = "auto",
         rescale_energy: bool = False,
-        random_rotation: bool = True,
+        random_rotation: bool = False,
         **kwargs,
     ):
         super().__init__(atoms, timestep, model, device, rescale_energy, random_rotation, **kwargs)
 
         self.temperature_K = temperature_K
         self.friction = 1.0 / time_constant
+        self.fixcm = fixcm
+        if self.fixcm:
+            self.atoms.set_velocities(self.atoms.get_velocities() - self.atoms.get_velocities().mean(axis=0))
 
     def step(self):
         self.apply_langevin_half_step()
@@ -40,3 +42,5 @@ class Langevin(VelocityVerlet):
             ase.units.kB * self.temperature_K * self.atoms.get_masses()[:, None]
         ) * np.random.randn(*old_momenta.shape)
         self.atoms.set_momenta(new_momenta)
+        if self.fixcm:
+            self.atoms.set_velocities(self.atoms.get_velocities() - self.atoms.get_velocities().mean(axis=0))
