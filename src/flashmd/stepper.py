@@ -5,6 +5,8 @@ import torch
 from metatomic.torch import System
 from metatrain.utils.neighbor_lists import get_system_with_neighbor_lists
 from metatomic.torch import AtomisticModel
+from .constraints import enforce_physical_constraints
+import ase.units
 
 
 class FlashMDStepper:
@@ -14,6 +16,7 @@ class FlashMDStepper:
         device: torch.device,
     ):
         self.model = model.to(device)
+        self.time_step = float(model.module.timestep) * ase.units.fs
 
         # one of these for each model:
         self.evaluation_options = ModelEvaluationOptions(
@@ -41,6 +44,10 @@ class FlashMDStepper:
         model_outputs = self.model(
             [system], self.evaluation_options, check_consistency=False
         )
+        model_outputs = enforce_physical_constraints(
+            [system], model_outputs, timestep=self.time_step
+        )
+
         new_q = model_outputs["positions"].block().values.squeeze(-1)
         new_p = model_outputs["momenta"].block().values.squeeze(-1)
 
