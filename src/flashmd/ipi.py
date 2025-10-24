@@ -113,6 +113,7 @@ def get_flashmd_vv_step(sim, model, device, rescale_energy=True, random_rotation
             kinetic_energy = sim.properties("kinetic_md")
             alpha = np.sqrt(1.0 - (new_energy - old_energy) / kinetic_energy)
             motion.beads.p[:] = alpha * dstrip(motion.beads.p)
+            motion.integrator.pconstraints()  # just to make sure; should be cheap
 
         info("@flashmd: End of VV step", verbosity.debug)
 
