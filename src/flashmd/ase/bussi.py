@@ -1,7 +1,7 @@
 from .velocity_verlet import VelocityVerlet
 import ase.units
 from typing import List
-from metatensor.torch.atomistic import MetatensorAtomisticModel
+from metatomic.torch import AtomisticModel
 import torch
 import ase
 import numpy as np
@@ -13,10 +13,10 @@ class Bussi(VelocityVerlet):
         atoms: ase.Atoms,
         timestep: float,
         temperature_K: float,
-        model: MetatensorAtomisticModel | List[MetatensorAtomisticModel],
+        model: AtomisticModel | List[AtomisticModel],
         time_constant: float = 10.0 * ase.units.fs,
         device: str | torch.device = "auto",
-        rescale_energy: bool = True,
+        rescale_energy: bool = False,
         random_rotation: bool = False,
         **kwargs,
     ):

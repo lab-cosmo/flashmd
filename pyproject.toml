@@ -1,6 +1,6 @@
 [project]
 name = "flashmd"
-version = "0.1.1"
+version = "0.2.2"
 requires-python = ">=3.9"
 
 readme = "README.md"
@@ -9,8 +9,8 @@ description = "Accelerated molecular dynamics with large-time-step predictions"
 authors = [{name = "flashmd developers"}]
 
 dependencies = [
+    "metatrain==2025.11",
     "ase",
-    "pet-mad",
     "huggingface_hub",
 ]
 
