@@ -54,12 +54,6 @@ def enforce_physical_constraints(
             )
         elif key == "positions":
             # uniform linear motion of the center of mass
-            # we need a timestep for this
-            if timestep is None:
-                raise ValueError(
-                    "A timestep must be provided to enforce physical constraints on "
-                    "the positions."
-                )
             system_sizes = [len(s) for s in systems]
             masses = [s.get_data("masses").block().values for s in systems]
             total_masses = [m.sum() for m in masses]
@@ -78,7 +72,7 @@ def enforce_physical_constraints(
                 for q, m, M in zip(positions_now, masses, total_masses)
             ]
             positions_now = [
-                q - q_com_now_i + q_com_before_i # + v_com_i * timestep
+                q - q_com_now_i + q_com_before_i + v_com_i * timestep
                 for q, q_com_now_i, q_com_before_i, v_com_i in zip(
                     positions_now,
                     positions_com_now,
