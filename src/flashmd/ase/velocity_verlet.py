@@ -74,7 +74,7 @@ class VelocityVerlet(MolecularDynamics):
         if self.random_rotation:
             # revert q, p to the original reference frame, load old cell
             new_system.cell = old_cell
-            new_system.positions = system.positions @ R
+            new_system.positions = new_system.positions @ R
             new_system.get_data("momenta").block().values[:] = (
                 (new_system.get_data("momenta").block().values.squeeze(-1) @ R).unsqueeze(-1)
             )
