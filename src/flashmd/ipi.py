@@ -15,7 +15,7 @@ from metatensor.torch import Labels, TensorBlock, TensorMap
 
 
 def get_standard_vv_step(
-    sim, model=None, device=None, rescale_energy=True, random_rotation=False
+    sim, model=None, device=None, rescale_energy=False, random_rotation=False
 ):
     """
     Returns a velocity Verlet stepper function for i-PI simulations.
@@ -56,7 +56,7 @@ def get_standard_vv_step(
     return vv_step
 
 
-def get_flashmd_vv_step(sim, model, device, rescale_energy=True, random_rotation=False):
+def get_flashmd_vv_step(sim, model, device, rescale_energy=False, random_rotation=False):
     capabilities = model.capabilities()
 
     model_timestep = float(model.module.timestep)
@@ -156,7 +156,7 @@ def get_nvt_stepper(
     sim,
     model,
     device,
-    rescale_energy=True,
+    rescale_energy=False,
     random_rotation=False,
     use_standard_vv=False,
 ):
@@ -224,7 +224,7 @@ def get_npt_stepper(
     sim,
     model,
     device,
-    rescale_energy=True,
+    rescale_energy=False,
     random_rotation=False,
     use_standard_vv=False,
 ):

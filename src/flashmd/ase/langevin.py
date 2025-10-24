@@ -18,7 +18,7 @@ class Langevin(VelocityVerlet):
         model: AtomisticModel | List[AtomisticModel],
         time_constant: float = 100.0 * ase.units.fs,
         device: str | torch.device = "auto",
-        rescale_energy: bool = True,
+        rescale_energy: bool = False,
         **kwargs,
     ):
         super().__init__(atoms, timestep, model, device, rescale_energy, **kwargs)
