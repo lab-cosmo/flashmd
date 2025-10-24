@@ -17,9 +17,10 @@ class Bussi(VelocityVerlet):
         time_constant: float = 10.0 * ase.units.fs,
         device: str | torch.device = "auto",
         rescale_energy: bool = False,
+        random_rotation: bool = True,
         **kwargs,
     ):
-        super().__init__(atoms, timestep, model, device, rescale_energy, **kwargs)
+        super().__init__(atoms, timestep, model, device, rescale_energy, random_rotation, **kwargs)
 
         self.temperature_K = temperature_K
         self.time_constant = time_constant
