@@ -105,3 +105,6 @@ pip install flashmd==0.1.2 ase==3.24.0 pet-mad==1.4.3
 
 and using the "PET-MAD" models (PBEsol) from https://huggingface.co/lab-cosmo/flashmd.
 Note that the results were obtained through the i-PI interface.
+
+Instructions and material to reproduce the results in the paper are available on
+Materials Cloud at https://doi.org/10.24435/materialscloud:b7-xq.
