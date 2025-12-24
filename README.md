@@ -65,6 +65,15 @@ Other available integrators:
   from flashmd.ase.bussi import Bussi
 ```
 
+Common pitfalls
+---------------
+
+Stick to 10-30x what you would use in normal MD for your system! The 64 fs example
+above is good for metals. However,
+- for most materials: try 32 fs (aggressive) or 16 fs (conservative)
+- for aqueous and/or organic systems: try 16 fs (aggressive) or 8 fs (conservative)
+
+
 Companion energy models
 -----------------------
 
@@ -74,8 +83,8 @@ on. You might want to use it if...
 
 Case 1: you want to run FlashMD with exact energy conservation, available through
 ``rescale_energy=True`` (this is enabled by default only when targeting the NVE
-ensemble with ``VelocityVerlet``). In that case, before running FlashMD, you can attach
-the energy calculator to the atoms:
+ensemble with ``VelocityVerlet``). In that case, before running FlashMD, you should
+attach the energy calculator to the atoms:
 
 ```
 from metatomic.torch.ase_calculator import MetatomicCalculator
