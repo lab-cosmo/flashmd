@@ -95,6 +95,56 @@ class VelocityVerlet(MolecularDynamics):
             alpha = np.sqrt(1.0 - (new_energy - old_energy) / old_kinetic_energy)
             self.atoms.set_momenta(alpha * self.atoms.get_momenta())
 
+    def irun(self, steps=50):
+        # We have to override irun to avoid calling MolecularDynamics.irun(), which
+        # itself calls Dynamics.irun(), which assumes an optimizer-like behavior and
+        # call gradients to check convergence. This function is a copy of
+        # Dynamics.irun(), where gradients are never requested and set to None.
+
+        # update the maximum number of steps
+        self.max_steps = self.nsteps + steps
+
+        # compute the initial step
+        gradient = None  # used to be gradient = self.optimizable.get_gradient()
+
+        # log the initial step
+        if self.nsteps == 0:
+            self.log(gradient)
+
+            # we write a trajectory file if it is None
+            if self.trajectory is None:
+                self.call_observers()
+            # We do not write on restart w/ an existing trajectory file
+            # present. This duplicates the same entry twice
+            elif len(self.trajectory) == 0:
+                self.call_observers()
+
+        # check convergence
+        gradient = None  # used to be gradient = self.optimizable.get_gradient()
+        is_converged = self.converged(gradient)
+        yield is_converged
+
+        # run the algorithm until converged or max_steps reached
+        while not is_converged and self.nsteps < self.max_steps:
+            # compute the next step
+            self.step()
+            self.nsteps += 1
+
+            # log the step
+            gradient = None  # used to be gradient = self.optimizable.get_gradient()
+            self.log(gradient)
+            self.call_observers()
+
+            # check convergence
+            gradient = None  # used to be gradient = self.optimizable.get_gradient()
+            is_converged = self.converged(gradient)
+            yield is_converged
+
+    def run(self, steps=50):
+        # Same motivation as irun(): override to avoid optimizer-like calls to forces.
+        for converged in self.irun(steps=steps):
+            pass
+        return converged
 
 def _convert_atoms_to_system(
     atoms: ase.Atoms, dtype: str, device: str | torch.device

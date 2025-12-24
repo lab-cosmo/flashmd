@@ -24,7 +24,6 @@ import ase.build
 import ase.units
 from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
 import torch
-from metatomic.torch.ase_calculator import MetatomicCalculator
 
 from flashmd import get_pretrained
 from flashmd.ase.langevin import Langevin
@@ -43,9 +42,6 @@ atoms.set_velocities(  # it is generally a good idea to remove any net velocity
 # Load models
 device="cuda" if torch.cuda.is_available() else "cpu"
 energy_model, flashmd_model = get_pretrained("pet-omatpes", time_step)  
-
-calculator = MetatomicCalculator(energy_model, device=device)
-atoms.calc = calculator
 
 # Run MD
 dyn = Langevin(
@@ -68,6 +64,47 @@ Other available integrators:
   from flashmd.ase.velocity_verlet import VelocityVerlet
   from flashmd.ase.bussi import Bussi
 ```
+
+Companion energy models
+-----------------------
+
+You might have noticed that ``get_pretrained()`` does not only return a FlashMD model,
+but also an energy model. This is the energy model that the FlashMD model was trained
+on. You might want to use it if...
+
+Case 1: you want to run FlashMD with exact energy conservation, available through
+``rescale_energy=True`` (this is enabled by default only when targeting the NVE
+ensemble with ``VelocityVerlet``). In that case, before running FlashMD, you can attach
+the energy calculator to the atoms:
+
+```
+from metatomic.torch.ase_calculator import MetatomicCalculator
+
+...  # setting up atoms
+calculator = MetatomicCalculator(energy_model, device=device, do_gradients_with_energy=False)
+atoms.calc = calculator
+...  # running FlashMD
+```
+
+Case 2: you want to compute energies after running FlashMD for your own analysis. In
+this case, you can create the calculator just like in case 1 after running FlashMD.
+
+Case 3: you found something interesting during a FlashMD run and you want to confirm it
+with traditional MD. Then, you can just use ASE MD's modules as usual after attaching the
+energy calculator:
+
+```
+from metatomic.torch.ase_calculator import MetatomicCalculator
+
+...  # setting up atoms
+calculator = MetatomicCalculator(energy_model, device=device)
+atoms.calc = calculator
+...  # running MD
+```
+
+In general, the energy models are slower and have a larger memory footprint compared to
+the FlashMD models. As summarized above, you should use `do_gradients_with_energy=False`
+to save computation and memory when you don't need forces.
 
 Disclaimer
 ----------
