@@ -99,7 +99,7 @@ Case 2: you want to compute energies after running FlashMD for your own analysis
 this case, you can create the calculator just like in case 1 after running FlashMD.
 
 Case 3: you found something interesting during a FlashMD run and you want to confirm it
-with traditional MD. Then, you can just use ASE MD's modules as usual after attaching the
+with traditional MD. Then, you can just use ASE's MD modules as usual after attaching the
 energy calculator:
 
 ```
