@@ -44,6 +44,7 @@ atoms.set_velocities(  # it is generally a good idea to remove any net velocity
 device="cuda" if torch.cuda.is_available() else "cpu"
 energy_model, flashmd_model = get_pretrained("pet-omatpes", time_step)  
 
+# Set the energy model (see below for more precise usage)
 calculator = MetatomicCalculator(energy_model, device=device)
 atoms.calc = calculator
 
@@ -89,9 +90,9 @@ if...
 Case 1: you want to run FlashMD with exact energy conservation, available through the
 integrator's (``dyn`` above) parameter ``rescale_energy=True`` (this is enabled by
 default only when targeting the NVE ensemble with ``VelocityVerlet``). In that case,
-before running FlashMD, you should attach the energy calculator to the atoms, exactly as
-shown above (and below with the more precise ``do_gradients_with_energy=False`` which
-will save you memory and computation):
+besides setting this flag, you should attach the energy calculator to the atoms before
+running FlashMD, exactly as shown above (and below with the more precise
+``do_gradients_with_energy=False`` which will save you memory and computation):
 
 ```
 from metatomic.torch.ase_calculator import MetatomicCalculator
