@@ -95,6 +95,37 @@ class VelocityVerlet(MolecularDynamics):
             alpha = np.sqrt(1.0 - (new_energy - old_energy) / old_kinetic_energy)
             self.atoms.set_momenta(alpha * self.atoms.get_momenta())
 
+    def irun(self, steps=50):
+        # We have to override irun to avoid calling MolecularDynamics.irun(), which
+        # calls gradients to check convergence (optimizer-like behavior) or to log the
+        # forces, depending on the ASE version. This function is a copy of
+        # Dynamics.irun(), where the calls to the forces are commented out.
+
+        # update the maximum number of steps
+        self.max_steps = self.nsteps + steps
+
+        if self.nsteps == 0:
+            # For historical reasons we do a magical incantation
+            # here with forces, log, observers.
+            # self.atoms.get_forces()
+            self.log()
+            self.call_observers()
+
+        yield self.nsteps == self.max_steps
+
+        # run the algorithm until converged or max_steps reached
+        while self.nsteps < self.max_steps:
+            self.step()
+            self.nsteps += 1
+            # self.atoms.get_forces()
+            self.log()
+            self.call_observers()
+            yield self.nsteps == self.max_steps
+
+    def run(self, steps=50):
+        # needed for ASE <= 3.26.0; in 3.27.0 Dynamics.run() works well for us
+        for _ in self.irun(steps=steps):
+            pass
 
 def _convert_atoms_to_system(
     atoms: ase.Atoms, dtype: str, device: str | torch.device
