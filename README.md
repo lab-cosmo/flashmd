@@ -124,6 +124,20 @@ In general, the energy models are slower and have a larger memory footprint comp
 the FlashMD models. As summarized above, you should use `do_gradients_with_energy=False`
 to save computation and memory when you don't need forces.
 
+Using FlashMD in LAMMPS
+-----------------------
+
+Running in LAMMPS is supported starting from FlashMD 0.2.5 (``pip install flashmd>=0.2.5``).
+LAMMPS will need the FlashMD model and, optionally,...
+
+```py
+from flashmd import get_pretrained
+
+energy_model, flashmd_model = get_pretrained("pet-omatpes", time_step)
+energy_model.save("mlip.pt")
+flashmd_model.save("flashmd.pt")
+```
+
 Disclaimer
 ----------
 
