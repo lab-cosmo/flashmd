@@ -36,7 +36,7 @@ jobs:
         enable-cache: true
         activate-environment: true
 
-    - name: Set tox
+    - name: Set up tox
       run: |
         uv tool install tox --with tox-uv
 
