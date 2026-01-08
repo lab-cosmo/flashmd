@@ -3,13 +3,13 @@ FlashMD: universal long-stride molecular dynamics
 
 This repository contains custom integrators to run MD trajectories with FlashMD models. These models are
 designed to learn and predict molecular dynamics trajectories using long strides, therefore allowing
-very large time steps. Before using this method, make sure you are aware of its limitations, which are
+very large time steps. When using this method, make sure you are aware of its limitations, which are
 discussed in [this preprint](http://arxiv.org/abs/2505.19350).
 
 The pre-trained models we make available are trained to reproduce ab-initio MD at the r2SCAN level of theory.
 
-Quickstart
-----------
+ASE Quickstart (see below for LAMMPS)
+-------------------------------------
 
 You can install the package with
 
@@ -17,7 +17,7 @@ You can install the package with
   pip install flashmd
 ```
 
-After installation, you can run accelerated molecular dynamics with ASE as follows:
+After installation, you can run accelerated molecular dynamics as follows:
 
 ```py
 import ase.build
@@ -127,29 +127,29 @@ to save computation and memory when you don't need forces.
 Using FlashMD in LAMMPS
 -----------------------
 
-Running in LAMMPS is supported starting from FlashMD 0.2.5 (``pip install flashmd>=0.2.5``).
-LAMMPS will need the FlashMD model and, optionally,...
+LAMMPS can allow you to run FlashMD with better computational and memory efficiency.
+Furthermore, it will give you access to more sophisticated types of simulations, such as
+simulations in the NPT ensemble and metadynamics. See [here](docs/lammps.md) for a guide
+on using FlashMD in LAMMPS.
 
-```py
-from flashmd import get_pretrained
+Using FlashMD in i-PI
+---------------------
 
-energy_model, flashmd_model = get_pretrained("pet-omatpes", time_step)
-energy_model.save("mlip.pt")
-flashmd_model.save("flashmd.pt")
-```
+You can see
+[this cookbook recipe](https://atomistic-cookbook.org/examples/flashmd/flashmd-demo.html) 
+for usage examples. i-PI is our most mature interface, and the one that was used to
+generate all our published results.
 
 Disclaimer
 ----------
 
 This is experimental software and should only be used if you know what you're doing.
-We recommend using the i-PI integrators for any serious work and/or if you need to perform
-constant-pressure (NPT) molecular dynamics. You can see
-[this cookbook recipe](https://atomistic-cookbook.org/examples/flashmd/flashmd-demo.html) 
-for a usage example.
-Given that the main issue we observe in direct MD trajectories is loss of equipartition
+Given that the main issue we observe in FlashMD is loss of equipartition
 of energy between different degrees of freedom, we recommend using a local Langevin
-thermostat, and to monitor the temperature of different atomic types or different
-parts of the simulated system. 
+thermostat, possibly monitoring the temperature of different atomic types or different
+parts of the simulated system. For the time being, we recommend checking all
+FlashMD-powered findings with traditional MD. The energy models that were used to train
+FlashMD, and that we make available in this repository, can be used for this purpose.
 
 
 Publication
