@@ -3,8 +3,6 @@
 import re
 from pathlib import Path
 
-import pytest
-
 
 def extract_python_code_from_readme():
     """Extract the first Python code block from README.md."""
@@ -22,7 +20,6 @@ def extract_python_code_from_readme():
     return matches[0]
 
 
-@pytest.mark.slow
 def test_readme_example():
     """Test that the README example runs successfully with 10 steps instead of 1000."""
     # Extract the code from README
@@ -33,13 +30,7 @@ def test_readme_example():
 
     # Execute the code
     exec_globals = {}
-    try:
-        exec(modified_code, exec_globals)
-    except (RuntimeError, OSError, ConnectionError) as e:
-        # Skip if we can't download models (e.g., no network, HuggingFace unavailable)
-        if "Cannot send a request" in str(e) or "No address" in str(e):
-            pytest.skip(f"Cannot download models from HuggingFace: {e}")
-        raise
+    exec(modified_code, exec_globals)
 
     # Basic validation: check that the dynamics object was created
     assert "dyn" in exec_globals
