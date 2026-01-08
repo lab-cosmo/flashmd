@@ -36,22 +36,13 @@ jobs:
         enable-cache: true
         activate-environment: true
 
-    - name: Set tox and coverage
+    - name: Set tox
       run: |
-        uv pip install coverage[toml]
         uv tool install tox --with tox-uv
 
-    - name: run Python tests and collect coverage
+    - name: run Python tests
       run: |
         tox -e tests
-        coverage xml --data-file tests/.coverage -o tests/coverage.xml
       env:
         # Use the CPU only version of torch when building/running the code
         PIP_EXTRA_INDEX_URL: https://download.pytorch.org/whl/cpu
-
-    - name: upload to codecov.io
-      uses: codecov/codecov-action@v5
-      with:
-        fail_ci_if_error: false
-        files: tests/coverage.xml
-        token: ${{ secrets.CODECOV_TOKEN }}
