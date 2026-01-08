@@ -44,7 +44,7 @@ jobs:
     - name: run Python tests and collect coverage
       run: |
         tox -e tests
-        coverage xml --data-file tests/.coverage
+        coverage xml --data-file tests/.coverage -o tests/coverage.xml
       env:
         # Use the CPU only version of torch when building/running the code
         PIP_EXTRA_INDEX_URL: https://download.pytorch.org/whl/cpu
