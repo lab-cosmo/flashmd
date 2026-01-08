@@ -34,5 +34,5 @@ def test_get_pretrained_invalid_time_step():
     """Test that get_pretrained raises ValueError for invalid time step."""
     from flashmd.models import get_pretrained
 
-    with pytest.raises(ValueError, match="Pretrained FlashMD models"):
+    with pytest.raises(ValueError, match="Pre-trained FlashMD models"):
         get_pretrained(mlip="pet-omatpes", time_step=999)

@@ -19,7 +19,7 @@ def get_pretrained(mlip: str = "pet-omatpes", time_step: int = 16) -> AtomisticM
 
     if time_step not in AVAILABLE_TIME_STEPS[mlip]:
         raise ValueError(
-            f"Pretrained FlashMD models based on the {mlip} MLIP are only available "
+            f"Pre-trained FlashMD models based on the {mlip} MLIP are only available "
             f"for time steps of {', '.join(map(str, AVAILABLE_TIME_STEPS[mlip]))} fs."
         )
 
