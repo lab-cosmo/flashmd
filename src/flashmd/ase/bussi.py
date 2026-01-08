@@ -1,5 +1,3 @@
-from typing import List
-
 import ase
 import ase.units
 import numpy as np
@@ -15,7 +13,7 @@ class Bussi(VelocityVerlet):
         atoms: ase.Atoms,
         timestep: float,
         temperature_K: float,
-        model: AtomisticModel | List[AtomisticModel],
+        model: AtomisticModel,
         time_constant: float = 10.0 * ase.units.fs,
         device: str | torch.device = "auto",
         rescale_energy: bool = False,

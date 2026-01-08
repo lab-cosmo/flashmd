@@ -1,5 +1,3 @@
-from typing import List
-
 import ase
 import ase.units
 import numpy as np
@@ -15,7 +13,7 @@ class Langevin(VelocityVerlet):
         atoms: ase.Atoms,
         timestep: float,
         temperature_K: float,
-        model: AtomisticModel | List[AtomisticModel],
+        model: AtomisticModel,
         time_constant: float = 100.0 * ase.units.fs,
         fixcm: bool = True,
         device: str | torch.device = "auto",

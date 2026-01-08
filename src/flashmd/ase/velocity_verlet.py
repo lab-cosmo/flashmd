@@ -1,5 +1,3 @@
-from typing import List
-
 import ase
 import ase.units
 import numpy as np
@@ -18,7 +16,7 @@ class VelocityVerlet(MolecularDynamics):
         self,
         atoms: ase.Atoms,
         timestep: float,
-        model: AtomisticModel | List[AtomisticModel],
+        model: AtomisticModel,
         device: str | torch.device = "auto",
         rescale_energy: bool = True,
         random_rotation: bool = False,
