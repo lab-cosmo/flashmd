@@ -1,14 +1,13 @@
+import os
+import subprocess
+import time
+
 from huggingface_hub import hf_hub_download
 from metatomic.torch import AtomisticModel, load_atomistic_model
-import subprocess
-import os
-import time
 
 
 AVAILABLE_MLIPS = ["pet-omatpes"]
-AVAILABLE_TIME_STEPS = {
-    "pet-omatpes": [1, 2, 4, 8, 16, 32, 64, 128]
-}
+AVAILABLE_TIME_STEPS = {"pet-omatpes": [1, 2, 4, 8, 16, 32, 64, 128]}
 
 
 def get_pretrained(mlip: str = "pet-omatpes", time_step: int = 16) -> AtomisticModel:
@@ -44,15 +43,22 @@ def get_pretrained(mlip: str = "pet-omatpes", time_step: int = 16) -> AtomisticM
     reexport = False
     exported_mlip_path = mlip_path.replace(".ckpt", ".pt")
     exported_flashmd_path = flashmd_path.replace(".ckpt", ".pt")
-    if not os.path.exists(exported_mlip_path) or not os.path.exists(exported_flashmd_path):
+    if not os.path.exists(exported_mlip_path) or not os.path.exists(
+        exported_flashmd_path
+    ):
         reexport = True
     mlip_mtime = os.path.getmtime(mlip_path)
     flashmd_mtime = os.path.getmtime(flashmd_path)
     if (time.time() - mlip_mtime < 10) or (time.time() - flashmd_mtime < 10):
         reexport = True
     if reexport:
-        subprocess.run(["mtt", "export", mlip_path, "-o", exported_mlip_path], capture_output=True)
-        subprocess.run(["mtt", "export", flashmd_path, "-o", exported_flashmd_path], capture_output=True)
+        subprocess.run(
+            ["mtt", "export", mlip_path, "-o", exported_mlip_path], capture_output=True
+        )
+        subprocess.run(
+            ["mtt", "export", flashmd_path, "-o", exported_flashmd_path],
+            capture_output=True,
+        )
 
     # Load as AtomisticModel instances
     mlip_model = load_atomistic_model(exported_mlip_path)

@@ -1,10 +1,12 @@
-from .velocity_verlet import VelocityVerlet
-import ase.units
 from typing import List
-from metatomic.torch import AtomisticModel
-import torch
+
 import ase
+import ase.units
 import numpy as np
+import torch
+from metatomic.torch import AtomisticModel
+
+from .velocity_verlet import VelocityVerlet
 
 
 class Langevin(VelocityVerlet):
@@ -21,13 +23,18 @@ class Langevin(VelocityVerlet):
         random_rotation: bool = False,
         **kwargs,
     ):
-        super().__init__(atoms, timestep, model, device, rescale_energy, random_rotation, **kwargs)
+        super().__init__(
+            atoms, timestep, model, device, rescale_energy, random_rotation, **kwargs
+        )
 
         self.temperature_K = temperature_K
         self.friction = 1.0 / time_constant
         self.fixcm = fixcm
         if self.fixcm:
-            self.atoms.set_velocities(self.atoms.get_velocities() - self.atoms.get_momenta().sum(axis=0) / self.atoms.get_masses().sum())
+            self.atoms.set_velocities(
+                self.atoms.get_velocities()
+                - self.atoms.get_momenta().sum(axis=0) / self.atoms.get_masses().sum()
+            )
 
     def step(self):
         self.apply_langevin_half_step()
@@ -43,4 +50,7 @@ class Langevin(VelocityVerlet):
         ) * np.random.randn(*old_momenta.shape)
         self.atoms.set_momenta(new_momenta)
         if self.fixcm:
-            self.atoms.set_velocities(self.atoms.get_velocities() - self.atoms.get_momenta().sum(axis=0) / self.atoms.get_masses().sum())
+            self.atoms.set_velocities(
+                self.atoms.get_velocities()
+                - self.atoms.get_momenta().sum(axis=0) / self.atoms.get_masses().sum()
+            )
