@@ -1,12 +1,11 @@
 # from ..utils.pretrained import load_pretrained_models
-from metatomic.torch import ModelEvaluationOptions, ModelOutput
-from metatensor.torch import Labels, TensorBlock, TensorMap
-import torch
-from metatomic.torch import System
-from metatrain.utils.neighbor_lists import get_system_with_neighbor_lists
-from metatomic.torch import AtomisticModel
-from .constraints import enforce_physical_constraints
 import ase.units
+import torch
+from metatensor.torch import Labels, TensorBlock, TensorMap
+from metatomic.torch import AtomisticModel, ModelEvaluationOptions, ModelOutput, System
+from metatrain.utils.neighbor_lists import get_system_with_neighbor_lists
+
+from .constraints import enforce_physical_constraints
 
 
 class FlashMDStepper:
