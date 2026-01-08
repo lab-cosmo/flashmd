@@ -25,7 +25,7 @@ def test_available_time_steps():
 def test_get_pretrained_invalid_mlip():
     """Test that get_pretrained raises ValueError for invalid MLIP."""
     from flashmd.models import get_pretrained
-    
+
     with pytest.raises(ValueError, match="MLIP 'invalid_mlip' is not available"):
         get_pretrained(mlip="invalid_mlip", time_step=16)
 
@@ -33,6 +33,6 @@ def test_get_pretrained_invalid_mlip():
 def test_get_pretrained_invalid_time_step():
     """Test that get_pretrained raises ValueError for invalid time step."""
     from flashmd.models import get_pretrained
-    
+
     with pytest.raises(ValueError, match="Pretrained FlashMD models"):
         get_pretrained(mlip="pet-omatpes", time_step=999)
