@@ -9,7 +9,7 @@ description = "Accelerated molecular dynamics with large-time-step predictions"
 authors = [{name = "flashmd developers"}]
 
 dependencies = [
-    "metatrain==2025.11",
+    "metatrain==2025.12",
     "ase",
     "huggingface_hub",
 ]
