@@ -47,7 +47,6 @@ where = ["src"]
 [project.optional-dependencies]
 dev = [
     "pytest",
-    "pytest-cov",
     "ruff",
     "mypy",
 ]
