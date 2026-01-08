@@ -75,6 +75,9 @@ ignore_missing_imports = true
 disable_error_code = ["union-attr"]
 
 [tool.pytest.ini_options]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+]
 filterwarnings = [
     "error",
     "ignore:custom data:UserWarning",
