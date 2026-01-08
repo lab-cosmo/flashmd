@@ -14,7 +14,7 @@ def test_available_time_steps():
     """Test that AVAILABLE_TIME_STEPS is defined and contains expected values."""
     assert isinstance(AVAILABLE_TIME_STEPS, dict)
     assert len(AVAILABLE_TIME_STEPS) > 0
-    
+
     # Check that each MLIP has time steps defined
     for mlip in AVAILABLE_MLIPS:
         assert mlip in AVAILABLE_TIME_STEPS
