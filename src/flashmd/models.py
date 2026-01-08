@@ -60,8 +60,21 @@ def get_pretrained(mlip: str = "pet-omatpes", time_step: int = 16) -> AtomisticM
             capture_output=True,
         )
 
-    # Load as AtomisticModel instances
-    mlip_model = load_atomistic_model(exported_mlip_path)
-    flashmd_model = load_atomistic_model(exported_flashmd_path)
+    # Load as AtomisticModel instances.
+    # If it doesn't work, try to re-export once  and load again (this will, among
+    # others, catch upgrades in metatomic that break compatibility)
+    try:
+        mlip_model = load_atomistic_model(exported_mlip_path)
+        flashmd_model = load_atomistic_model(exported_flashmd_path)
+    except Exception:
+        subprocess.run(
+            ["mtt", "export", mlip_path, "-o", exported_mlip_path], capture_output=True
+        )
+        subprocess.run(
+            ["mtt", "export", flashmd_path, "-o", exported_flashmd_path],
+            capture_output=True,
+        )
+        mlip_model = load_atomistic_model(exported_mlip_path)
+        flashmd_model = load_atomistic_model(exported_flashmd_path)
 
     return mlip_model, flashmd_model
