@@ -47,6 +47,7 @@ where = ["src"]
 [project.optional-dependencies]
 dev = [
     "pytest",
+    "pytest-cov",
     "ruff",
     "mypy",
 ]
@@ -71,6 +72,7 @@ docstring-code-format = true
 [tool.mypy]
 follow_imports = 'skip'
 ignore_missing_imports = true
+disable_error_code = ["union-attr"]
 
 [tool.pytest.ini_options]
 filterwarnings = [
