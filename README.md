@@ -42,7 +42,7 @@ atoms.set_velocities(  # it is generally a good idea to remove any net velocity
 
 # Load models
 device="cuda" if torch.cuda.is_available() else "cpu"
-energy_model, flashmd_model = get_pretrained("pet-omatpes", time_step)  
+energy_model, flashmd_model = get_pretrained("pet-omatpes-v2", time_step)  
 
 # Set the energy model (see below for more precise usage)
 calculator = MetatomicCalculator(energy_model, device=device)

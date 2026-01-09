@@ -8,6 +8,7 @@ def test_available_mlips():
     assert isinstance(AVAILABLE_MLIPS, list)
     assert len(AVAILABLE_MLIPS) > 0
     assert "pet-omatpes" in AVAILABLE_MLIPS
+    assert "pet-omatpes-v2" in AVAILABLE_MLIPS
 
 
 def test_available_time_steps():

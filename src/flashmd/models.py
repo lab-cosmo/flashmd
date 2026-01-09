@@ -6,11 +6,14 @@ from huggingface_hub import hf_hub_download
 from metatomic.torch import AtomisticModel, load_atomistic_model
 
 
-AVAILABLE_MLIPS = ["pet-omatpes"]
-AVAILABLE_TIME_STEPS = {"pet-omatpes": [1, 2, 4, 8, 16, 32, 64, 128]}
+AVAILABLE_MLIPS = ["pet-omatpes", "pet-omatpes-v2"]
+AVAILABLE_TIME_STEPS = {
+    "pet-omatpes": [1, 2, 4, 8, 16, 32, 64, 128],
+    "pet-omatpes-v2": [1, 2, 4, 8, 16, 32, 64, 128]
+}
 
 
-def get_pretrained(mlip: str = "pet-omatpes", time_step: int = 16) -> AtomisticModel:
+def get_pretrained(mlip: str = "pet-omatpes-v2", time_step: int = 16) -> AtomisticModel:
     if mlip not in AVAILABLE_MLIPS:
         raise ValueError(
             f"MLIP '{mlip}' is not available. "
