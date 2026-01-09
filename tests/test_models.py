@@ -37,3 +37,30 @@ def test_get_pretrained_invalid_time_step():
 
     with pytest.raises(ValueError, match="Pre-trained FlashMD models"):
         get_pretrained(mlip="pet-omatpes", time_step=999)
+
+
+def test_save_checkpoint_invalid_time_step():
+    """Test that save_checkpoint raises ValueError for invalid time step."""
+    from flashmd.models import save_checkpoint
+
+    with pytest.raises(ValueError, match="Pre-trained FlashMD models"):
+        save_checkpoint(mlip="pet-omatpes-v2", time_step=999)
+
+
+def test_save_checkpoint(monkeypatch):
+    """Test that save_checkpoint saves the checkpoint file."""
+    from flashmd.models import save_checkpoint
+
+    # Mock hf_hub_download and shutil.copyfile
+    def mock_hf_hub_download(repo_id, filename, cache_dir, revision):
+        return f"/path/to/{filename}"
+
+    def mock_copyfile(src, dst):
+        assert src == "/path/to/flashmd_pet-omatpes-v2_16fs.ckpt"
+        assert dst == "flashmd_pet-omatpes-v2_16fs.ckpt"
+
+    monkeypatch.setattr("flashmd.models.hf_hub_download", mock_hf_hub_download)
+    monkeypatch.setattr("flashmd.models.shutil.copyfile", mock_copyfile)
+
+    save_checkpoint(mlip="pet-omatpes-v2", time_step=16)
+
