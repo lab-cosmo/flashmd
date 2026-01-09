@@ -9,7 +9,7 @@ from metatomic.torch import AtomisticModel, load_atomistic_model
 AVAILABLE_MLIPS = ["pet-omatpes", "pet-omatpes-v2"]
 AVAILABLE_TIME_STEPS = {
     "pet-omatpes": [1, 2, 4, 8, 16, 32, 64, 128],
-    "pet-omatpes-v2": [1, 2, 4, 8, 16, 32, 64, 128]
+    "pet-omatpes-v2": [1, 2, 4, 8, 16, 32, 64, 128],
 }
 
 
