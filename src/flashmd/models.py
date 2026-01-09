@@ -1,4 +1,5 @@
 import os
+import shutil
 import subprocess
 import time
 
@@ -81,3 +82,21 @@ def get_pretrained(mlip: str = "pet-omatpes-v2", time_step: int = 16) -> Atomist
         flashmd_model = load_atomistic_model(exported_flashmd_path)
 
     return mlip_model, flashmd_model
+
+
+def save_checkpoint(mlip: str = "pet-omatpes-v2", time_step: int = 16):
+    if time_step not in AVAILABLE_TIME_STEPS[mlip]:
+        raise ValueError(
+            f"Pre-trained FlashMD models based on the {mlip} MLIP are only available "
+            f"for time steps of {', '.join(map(str, AVAILABLE_TIME_STEPS[mlip]))} fs."
+        )
+
+    checkpoint_path = hf_hub_download(
+        repo_id="lab-cosmo/flashmd",
+        filename=f"flashmd_{mlip}_{time_step}fs.ckpt",
+        cache_dir=None,
+        revision="main",
+    )
+
+    # Copy it to the current directory
+    shutil.copyfile(checkpoint_path, f"flashmd_{mlip}_{time_step}fs.ckpt")
