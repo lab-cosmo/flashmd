@@ -105,6 +105,13 @@ Models
 See [here](docs/models.md) for the complete list of the models we provide. If you are
 new to FlashMD, we recommend starting with the ``pet-omatpes-v2`` models.
 
+Training/fine-tuning your own FlashMD models
+--------------------------------------------
+
+FlashMD models can be trained from the metatrain library. This
+[tutorial](https://docs.metatensor.org/metatrain/latest/generated_examples/1-advanced/04-flashmd.html)
+shows how to train your own FlashMD model, either from scratch or via fine-tuning of one of our universal models.
+
 Disclaimer
 ----------
 
