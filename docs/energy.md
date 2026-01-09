@@ -7,10 +7,10 @@ This is the energy model that the FlashMD model was trained on. You might want t
 if...
 
 **Case 1**: you want to run FlashMD with exact energy conservation, available through the
-integrator's (``dyn`` above) parameter ``rescale_energy=True`` (this is enabled by
+integrator's (often named ``dyn``) parameter ``rescale_energy=True`` (this is enabled by
 default only when targeting the NVE ensemble with ``VelocityVerlet``). In that case,
 besides setting this flag, you should attach the energy calculator to the atoms before
-running FlashMD, exactly as shown above (and below with the more precise
+running FlashMD, exactly as shown in the opening example (and below with the more precise
 ``do_gradients_with_energy=False`` which will save you memory and computation):
 
 ```
