@@ -1,0 +1,27 @@
+name: Lint
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-22.04
+
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v7
+      with:
+        version: "0.9.0"
+        python-version: "3.13"
+        enable-cache: true
+        activate-environment: true
+
+    - name: Setup dependencies
+      run: |
+        uv tool install tox --with tox-uv
+
+    - name: Lint the code
+      run: tox -e lint

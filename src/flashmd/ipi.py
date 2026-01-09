@@ -1,17 +1,16 @@
+import ase.data
+import ase.units
+import numpy as np
+import torch
+from ipi.engine.motion.dynamics import NPTIntegrator, NVEIntegrator, NVTIntegrator
 from ipi.utils.depend import dstrip
-from ipi.utils.units import Constants
-from ipi.utils.messages import verbosity, info
 from ipi.utils.mathtools import random_rotation as random_rotation_matrix
-from ipi.engine.motion.dynamics import NVEIntegrator, NVTIntegrator, NPTIntegrator
+from ipi.utils.messages import info, verbosity
+from ipi.utils.units import Constants
+from metatensor.torch import Labels, TensorBlock, TensorMap
+from metatomic.torch import System
 
 from flashmd.stepper import FlashMDStepper
-import ase.units
-import torch
-import numpy as np
-import ase.data
-
-from metatomic.torch import System
-from metatensor.torch import Labels, TensorBlock, TensorMap
 
 
 def get_standard_vv_step(
@@ -56,7 +55,9 @@ def get_standard_vv_step(
     return vv_step
 
 
-def get_flashmd_vv_step(sim, model, device, rescale_energy=False, random_rotation=False):
+def get_flashmd_vv_step(
+    sim, model, device, rescale_energy=False, random_rotation=False
+):
     capabilities = model.capabilities()
 
     model_timestep = float(model.module.timestep)

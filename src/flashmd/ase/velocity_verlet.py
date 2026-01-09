@@ -1,15 +1,14 @@
-from ase.md.md import MolecularDynamics
-from typing import List
-from metatomic.torch import AtomisticModel
-from metatensor.torch import Labels, TensorBlock, TensorMap
-import ase.units
-import torch
-from metatomic.torch.ase_calculator import _ase_to_torch_data
-from metatomic.torch import System
 import ase
-from ..stepper import FlashMDStepper
+import ase.units
 import numpy as np
+import torch
+from ase.md.md import MolecularDynamics
+from metatensor.torch import Labels, TensorBlock, TensorMap
+from metatomic.torch import AtomisticModel, System
+from metatomic.torch.ase_calculator import _ase_to_torch_data
 from scipy.spatial.transform import Rotation
+
+from ..stepper import FlashMDStepper
 
 
 class VelocityVerlet(MolecularDynamics):
@@ -17,7 +16,7 @@ class VelocityVerlet(MolecularDynamics):
         self,
         atoms: ase.Atoms,
         timestep: float,
-        model: AtomisticModel | List[AtomisticModel],
+        model: AtomisticModel,
         device: str | torch.device = "auto",
         rescale_energy: bool = True,
         random_rotation: bool = False,
@@ -66,8 +65,8 @@ class VelocityVerlet(MolecularDynamics):
             system.positions = system.positions @ R.T
             # change momentum TensorMap in place
             system.get_data("momenta").block().values[:] = (
-                (system.get_data("momenta").block().values.squeeze(-1) @ R.T).unsqueeze(-1)
-            )
+                system.get_data("momenta").block().values.squeeze(-1) @ R.T
+            ).unsqueeze(-1)
 
         new_system = self.stepper.step(system)
 
@@ -76,8 +75,8 @@ class VelocityVerlet(MolecularDynamics):
             new_system.cell = old_cell
             new_system.positions = new_system.positions @ R
             new_system.get_data("momenta").block().values[:] = (
-                (new_system.get_data("momenta").block().values.squeeze(-1) @ R).unsqueeze(-1)
-            )
+                new_system.get_data("momenta").block().values.squeeze(-1) @ R
+            ).unsqueeze(-1)
 
         self.atoms.set_positions(new_system.positions.detach().cpu().numpy())
         self.atoms.set_momenta(
@@ -126,6 +125,7 @@ class VelocityVerlet(MolecularDynamics):
         # needed for ASE <= 3.26.0; in 3.27.0 Dynamics.run() works well for us
         for _ in self.irun(steps=steps):
             pass
+
 
 def _convert_atoms_to_system(
     atoms: ase.Atoms, dtype: str, device: str | torch.device

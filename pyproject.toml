@@ -1,6 +1,6 @@
 [project]
 name = "flashmd"
-version = "0.2.4"
+version = "0.2.5"
 requires-python = ">=3.9"
 
 readme = "README.md"
@@ -9,7 +9,7 @@ description = "Accelerated molecular dynamics with large-time-step predictions"
 authors = [{name = "flashmd developers"}]
 
 dependencies = [
-    "metatrain==2025.11",
+    "metatrain==2025.12",
     "ase",
     "huggingface_hub",
 ]
@@ -44,5 +44,40 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "ruff",
+    "mypy",
+]
+
 [tool.ruff]
 line-length = 88
+
+[tool.ruff.lint]
+select = ["E", "F", "B", "I"]
+ignore = ["B018", "B904", "E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"**/{tests}/*" = ["D"]
+
+[tool.ruff.lint.isort]
+lines-after-imports = 2
+known-first-party = ["flashmd"]
+
+[tool.ruff.format]
+docstring-code-format = true
+
+[tool.mypy]
+follow_imports = 'skip'
+ignore_missing_imports = true
+disable_error_code = ["union-attr"]
+
+[tool.pytest.ini_options]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+]
+filterwarnings = [
+    "error",
+    "ignore:custom data:UserWarning",
+]
