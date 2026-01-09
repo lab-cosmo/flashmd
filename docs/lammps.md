@@ -61,7 +61,8 @@ Here below you will see how to run different types of molecular dynamics. In all
 you should launch LAMMPS as ``lmp -in in.flashmd -k on g 1 -pk kokkos newton on neigh half -sf kk``
 (assuming your input file is named ``in.flashmd``), or ``lmp -in in.flashmd`` if you
 want to run without Kokkos acceleration. The following sections will present some input
-files that you can take inspiration from. 
+files that you can take inspiration from. Trivially, we advise you to consult the [LAMMPS
+documentation](https://docs.lammps.org) for further explanation of all the parameters.
 
 # NVT (Langevin thermostat)
 
@@ -197,7 +198,7 @@ pair_coeff      * * 13
 ```
 (and we removed ``non_conservative on``). This is because the energy model is used to
 provide stresses for pressure control. This will slow your simulation down quite a
-bit, but we are working to make NPT dynamics with FlashMD more efficient!
+bit, but we are actively working to make NPT dynamics with FlashMD more efficient!
 
 # Metadynamics using PLUMED
 
