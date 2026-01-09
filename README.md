@@ -130,11 +130,12 @@ Publication
 If you found FlashMD useful, you can cite the corresponding article:
 
 ```
-@article{FlashMD,
-  title={FlashMD: long-stride, universal prediction of molecular dynamics},
-  author={Bigi, Filippo and Chong, Sanggyu and Kristiadi, Agustinus and Ceriotti, Michele},
-  journal={arXiv preprint arXiv:2505.19350},
-  year={2025}
+@inproceedings{FlashMD,
+  title     = {FlashMD: long-stride, universal prediction of molecular dynamics},
+  author    = {Bigi, Filippo and Chong, Sanggyu and Kristiadi, Agustinus and Ceriotti, Michele},
+  booktitle = {Advances in Neural Information Processing Systems},
+  year      = {2025},
+  url       = {https://openreview.net/forum?id=ogZu06NgQs}
 }
 ```
 
