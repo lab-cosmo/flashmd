@@ -63,4 +63,3 @@ def test_save_checkpoint(monkeypatch):
     monkeypatch.setattr("flashmd.models.shutil.copyfile", mock_copyfile)
 
     save_checkpoint(mlip="pet-omatpes-v2", time_step=16)
-
