@@ -28,7 +28,7 @@ number you get and match it to the number from the following list:
 where you should replace ``ADA89`` with the string you found above. If you do not have
 conda yet, we recommend the [Miniforge](https://github.com/conda-forge/miniforge) conda provider.
 On HPC systems, it is safer to execute this command on a GPU-enabled compute (or debug)
-node, as sometimes nvidia drivers are not present on login nodes and this can prevent
+node, as sometimes Nvidia drivers are not present on login nodes and this can prevent
 conda from installing the correct GPU libraries.
 
 You are now ready to run FlashMD in LAMMPS!
