@@ -127,7 +127,7 @@ FlashMD, and that we make available in this repository, can be used for this pur
 Publication
 -----------
 
-If you found FlashMD useful, you can cite the corresponding article:
+If you found FlashMD useful, you can cite the corresponding [article](https://arxiv.org/abs/2505.19350):
 
 ```
 @inproceedings{FlashMD,
@@ -135,7 +135,7 @@ If you found FlashMD useful, you can cite the corresponding article:
   author    = {Bigi, Filippo and Chong, Sanggyu and Kristiadi, Agustinus and Ceriotti, Michele},
   booktitle = {Advances in Neural Information Processing Systems},
   year      = {2025},
-  url       = {https://openreview.net/forum?id=ogZu06NgQs}
+  url       = {https://arxiv.org/abs/2505.19350}
 }
 ```
 
