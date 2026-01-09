@@ -110,7 +110,7 @@ Training/fine-tuning your own FlashMD models
 
 FlashMD models can be trained from the metatrain library. This
 [tutorial](https://docs.metatensor.org/metatrain/latest/generated_examples/1-advanced/04-flashmd.html)
-shows how to train your own FlashMD model, either from scratch or via fine-tuning of one of our universal models.
+shows how to train your own FlashMD model, either from scratch or by fine-tuning of one of our universal models.
 
 Disclaimer
 ----------
