@@ -197,7 +197,7 @@ pair_coeff      * * 13
 ```
 (and we removed ``non_conservative on``). This is because the energy model is used to
 provide stresses for pressure control. This will slow your simulation down quite a
-bit, but we are working to make NPT dynamics with FlashMD more efficient!
+bit, but we are actively working to make NPT dynamics with FlashMD more efficient!
 
 # Metadynamics using PLUMED
 
