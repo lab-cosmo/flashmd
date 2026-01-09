@@ -87,7 +87,7 @@ but also an energy model, which is itself just a machine-learned interatomic pot
 This is the energy model that the FlashMD model was trained on. You might want to use it
 if...
 
-Case 1: you want to run FlashMD with exact energy conservation, available through the
+**Case 1**: you want to run FlashMD with exact energy conservation, available through the
 integrator's (``dyn`` above) parameter ``rescale_energy=True`` (this is enabled by
 default only when targeting the NVE ensemble with ``VelocityVerlet``). In that case,
 besides setting this flag, you should attach the energy calculator to the atoms before
@@ -103,11 +103,11 @@ atoms.calc = calculator
 ...  # running FlashMD
 ```
 
-Case 2: you want to compute energies after running FlashMD for your own analysis. In
+**Case 2**: you want to compute energies after running FlashMD for your own analysis. In
 this case, you can create the calculator just like in case 1, but possibly after running
 FlashMD and/or in a different script.
 
-Case 3: you found something interesting during a FlashMD run and you want to confirm it
+**Case 3**: you found something interesting during a FlashMD run and you want to confirm it
 with traditional MD. Then, you can just use ASE's MD modules as usual after attaching
 the energy calculator:
 
@@ -122,7 +122,7 @@ atoms.calc = calculator
 
 In general, the energy models are slower and have a larger memory footprint compared to
 the FlashMD models. As summarized above, you should use `do_gradients_with_energy=False`
-to save computation and memory when you don't need forces.
+to save computation and memory when you do not need forces.
 
 Using FlashMD in LAMMPS
 -----------------------
@@ -143,11 +143,11 @@ generate all our published results.
 Disclaimer
 ----------
 
-This is experimental software and should only be used if you know what you're doing.
+This is experimental software and should only be used if you know what you are doing.
 Given that the main issue we observe in FlashMD is loss of equipartition
-of energy between different degrees of freedom, we recommend using a local Langevin
+of energy between different degrees of freedom, we recommend using a Langevin
 thermostat, possibly monitoring the temperature of different atomic types or different
-parts of the simulated system. For the time being, we recommend checking all
+parts of the simulated system. For the time being, we also recommend checking all
 FlashMD-powered findings with traditional MD. The energy models that were used to train
 FlashMD, and that we make available in this repository, can be used for this purpose.
 

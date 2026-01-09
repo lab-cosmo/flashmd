@@ -18,19 +18,20 @@ details, you can refer to this
 [page](https://docs.metatensor.org/metatomic/latest/engines/lammps.html#how-to-install-the-code).
 
 **Step 1** Find your GPU's architecture, either via the command
-``nvidia-smi --query-gpu=compute_cap --format=csv,noheader`` or by looking it up on this
+``nvidia-smi --query-gpu=compute_cap --format=csv,noheader`` or by looking it up
 from this [page](https://developer.nvidia.com/cuda/gpus). Remove the . (dot) from the
 number you get and match it to the number from the following list: 
 ``VOLTA70, AMPERE80, AMPERE86, ADA89, HOPPER90``. For example, if you got 8.9, go for
 "ADA89".
 
-**Step 2** Run ``conda install -c metatensor -c conda-forge "lammps-metatomic=*=cuda*AMPERE80*nompi*"``.
-If you don't have conda yet, we recommend the [Miniforge](https://github.com/conda-forge/miniforge) conda provider.
+**Step 2** Run ``conda install -c metatensor -c conda-forge "lammps-metatomic=*=cuda*ADA89*nompi*"``,
+where you should replace ``ADA89`` with the string you found above. If you do not have
+conda yet, we recommend the [Miniforge](https://github.com/conda-forge/miniforge) conda provider.
 On HPC systems, it is safer to execute this command on a GPU-enabled compute (or debug)
 node, as sometimes nvidia drivers are not present on login nodes and this can prevent
 conda from installing the correct GPU libraries.
 
-You're now ready to run FlashMD in LAMMPS!
+You are now ready to run FlashMD in LAMMPS!
 
 **Note:** FlashMD in LAMMPS does not support running on multiple GPUs yet, and we are
 actively working on this feature. However, FlashMD supports between 120k and 300k atoms
@@ -65,7 +66,7 @@ files that you can take inspiration from.
 # NVT (Langevin thermostat)
 
 Langevin dynamics is conceptually one of the easiest methods to target the NVT ensemble
-in molecular dynamics. Here's an input file to use a Langevin thermostat with FlashMD:
+in molecular dynamics. Here is an input file to use a Langevin thermostat with FlashMD:
 
 ```
 # Create a block of Al -- replace it with your system
@@ -109,7 +110,7 @@ mass 2 1.008
 FlashMD is not transferable across different masses. Therefore, if your atomic masses do
 not correspond to those used to train FlashMD (which are the standard atomic weights,
 i.e., abundance-weighted isotopic averages), an error will be raised. The same will
-happen if your time step doesn't match that of the model. 
+happen if your time step does not match that of the FlashMD model. 
 
 # NVT (CSVR thermostat)
 
@@ -152,7 +153,7 @@ qualitatively correct, the dynamical properties of the simulation might be
 quantitatively off, especially when using large time steps. When using this thermostat,
 you should confirm any findings with normal MD: uncomment the ``pair_style`` and
 ``pair_coeff`` lines, remove ``non_conservative on``, replace the ``fix metatomic`` line
-with ``fix 0 all nve`` and you'll be ready to run traditional MD with the r2SCAN model
+with ``fix 0 all nve`` and you will be ready to run traditional MD with the r2SCAN model
 that FlashMD was trained on. 
 
 # NPT
@@ -200,7 +201,7 @@ bit, but we are working to make NPT dynamics with FlashMD more efficient!
 
 # Metadynamics using PLUMED
 
-In order to run metadynamics with PLUMED, just add a PLUMED fix to the simulation.
+To run metadynamics with PLUMED, you can just add a PLUMED fix to the simulation.
 For example:
 
 ```
