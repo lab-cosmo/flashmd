@@ -24,7 +24,7 @@ import ase.build
 import ase.units
 from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
 import torch
-from metatomic.torch.ase_calculator import MetatomicCalculator
+from flashmd.ase import EnergyCalculator
 
 from flashmd import get_pretrained
 from flashmd.ase.langevin import Langevin
@@ -44,8 +44,8 @@ atoms.set_velocities(  # it is generally a good idea to remove any net velocity
 device="cuda" if torch.cuda.is_available() else "cpu"
 energy_model, flashmd_model = get_pretrained("pet-omatpes-v2", time_step)  
 
-# Set the energy model (see below for more precise usage)
-calculator = MetatomicCalculator(energy_model, device=device)
+# Set the energy model (optional, see below for more precise usage)
+calculator = EnergyCalculator(energy_model, device=device)
 atoms.calc = calculator
 
 # Run MD

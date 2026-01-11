@@ -14,10 +14,10 @@ running FlashMD, exactly as shown in the opening example (and below with the mor
 ``do_gradients_with_energy=False`` which will save you memory and computation):
 
 ```
-from metatomic.torch.ase_calculator import MetatomicCalculator
+from flashmd.ase import EnergyCalculator
 
 ...  # setting up atoms
-calculator = MetatomicCalculator(energy_model, device=device, do_gradients_with_energy=False)
+calculator = EnergyCalculator(energy_model, device=device, do_gradients_with_energy=False)
 atoms.calc = calculator
 ...  # running FlashMD
 ```
@@ -31,10 +31,10 @@ with traditional MD. Then, you can just use ASE's MD modules as usual after atta
 the energy calculator:
 
 ```
-from metatomic.torch.ase_calculator import MetatomicCalculator
+from flashmd.ase import EnergyCalculator
 
 ...  # setting up atoms
-calculator = MetatomicCalculator(energy_model, device=device)
+calculator = EnergyCalculator(energy_model, device=device)
 atoms.calc = calculator
 ...  # running MD
 ```
