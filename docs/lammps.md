@@ -49,7 +49,7 @@ trained on. Here is how you can get them in the current directory from Python:
 ```py
     from flashmd import get_pretrained
 
-    time_step = 16  # in fs, also available: 1, 2, 4, 8, 32, 64, 128
+    time_step = 16  # 16 fs, also available: 1, 2, 4, 8, 32, 64, 128 fs
     energy_model, flashmd_model = get_pretrained("pet-omatpes-v2", time_step)
     energy_model.save("mlip.pt")
     flashmd_model.save(f"flashmd-{time_step}.pt")

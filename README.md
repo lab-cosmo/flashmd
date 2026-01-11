@@ -22,11 +22,11 @@ After installation, you can run accelerated molecular dynamics as follows:
 ```py
 import ase.build
 import ase.units
-from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
 import torch
-from flashmd.ase import EnergyCalculator
+from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
 
 from flashmd import get_pretrained
+from flashmd.ase import EnergyCalculator
 from flashmd.ase.langevin import Langevin
 
 
@@ -41,8 +41,8 @@ atoms.set_velocities(  # it is generally a good idea to remove any net velocity
 )
 
 # Load models
-device="cuda" if torch.cuda.is_available() else "cpu"
-energy_model, flashmd_model = get_pretrained("pet-omatpes-v2", time_step)  
+device = "cuda" if torch.cuda.is_available() else "cpu"
+energy_model, flashmd_model = get_pretrained("pet-omatpes-v2", time_step)
 
 # Set the energy model (optional, see below for more precise usage)
 calculator = EnergyCalculator(energy_model, device=device)
@@ -55,9 +55,9 @@ dyn = Langevin(
     temperature_K=300,
     time_constant=100*ase.units.fs,
     model=flashmd_model,
-    device=device
+    device=device,
 )
-dyn.run(1000)
+dyn.run(1000)  # this is 64 ps!
 ```
 
 [The first time you use this code and call the `get_pretrained` function, the
