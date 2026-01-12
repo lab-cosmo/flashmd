@@ -108,7 +108,7 @@ new to FlashMD, we recommend starting with the ``pet-omatpes-v2`` models.
 Training/fine-tuning your own FlashMD models
 --------------------------------------------
 
-FlashMD models can be trained from the metatrain library. This
+FlashMD models can be trained from the **metatrain library**. This
 [tutorial](https://docs.metatensor.org/metatrain/latest/generated_examples/1-advanced/04-flashmd.html)
 shows how to train your own FlashMD model, either from scratch or by fine-tuning of one of our universal models.
 
@@ -123,6 +123,11 @@ parts of the simulated system. For the time being, we also recommend checking al
 FlashMD-powered findings with traditional MD. The energy models that were used to train
 FlashMD, and that we make available in this repository, can be used for this purpose.
 
+#### More energy models
+
+Do you want to try out different energy models (MLIPs),
+trained on different levels of theory and/or with different accuracy-speed tradeoffs? Check
+out the **[UPET](https://github.com/lab-cosmo/upet) repository.**
 
 Publication
 -----------
