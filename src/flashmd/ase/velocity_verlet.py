@@ -1,14 +1,14 @@
-from ase.md.md import MolecularDynamics
-from typing import List
-from metatomic.torch import AtomisticModel
-from metatensor.torch import Labels, TensorBlock, TensorMap
-import ase.units
-import torch
-from metatomic.torch.ase_calculator import _ase_to_torch_data
-from metatomic.torch import System
 import ase
-from ..stepper import FlashMDStepper
+import ase.units
 import numpy as np
+import torch
+from ase.md.md import MolecularDynamics
+from metatensor.torch import Labels, TensorBlock, TensorMap
+from metatomic.torch import AtomisticModel, System
+from metatomic.torch.ase_calculator import _ase_to_torch_data
+from scipy.spatial.transform import Rotation
+
+from ..stepper import FlashMDStepper
 
 
 class VelocityVerlet(MolecularDynamics):
@@ -16,26 +16,21 @@ class VelocityVerlet(MolecularDynamics):
         self,
         atoms: ase.Atoms,
         timestep: float,
-        model: AtomisticModel | List[AtomisticModel],
+        model: AtomisticModel,
         device: str | torch.device = "auto",
         rescale_energy: bool = True,
+        random_rotation: bool = False,
         **kwargs,
     ):
         super().__init__(atoms, timestep, **kwargs)
 
-        models = model if isinstance(model, list) else [model]
-        capabilities = models[0].capabilities()
+        capabilities = model.capabilities()
 
-        base_timestep = float(models[0].module.base_time_step) * ase.units.fs
-
-        n_time_steps = int(
-            [k for k in capabilities.outputs.keys() if "mtt::delta_" in k][0].split(
-                "_"
-            )[1]
-        )
-        if n_time_steps != self.dt / base_timestep:
+        model_timestep = float(model.module.timestep)
+        if not np.allclose(model_timestep, self.dt / ase.units.fs):
             raise ValueError(
-                f"Mismatch between timestep ({self.dt}) and model timestep ({base_timestep})."
+                f"Mismatch between timestep ({self.dt / ase.units.fs} fs) "
+                f"and model timestep ({model_timestep} fs)."
             )
 
         if device == "auto":
@@ -45,8 +40,9 @@ class VelocityVerlet(MolecularDynamics):
         self.device = torch.device(device)
         self.dtype = getattr(torch, capabilities.dtype)
 
-        self.stepper = FlashMDStepper(models, n_time_steps, self.device)
+        self.stepper = FlashMDStepper(model, self.device)
         self.rescale_energy = rescale_energy
+        self.random_rotation = random_rotation
 
     def step(self):
         if self.rescale_energy:
@@ -55,7 +51,33 @@ class VelocityVerlet(MolecularDynamics):
         system = _convert_atoms_to_system(
             self.atoms, device=self.device, dtype=self.dtype
         )
+
+        if self.random_rotation:
+            # generate a random rotation matrix with SciPy
+            R = torch.tensor(
+                _get_random_rotation(),
+                device=system.positions.device,
+                dtype=system.positions.dtype,
+            )
+            # apply the random rotation
+            old_cell = system.cell
+            system.cell = system.cell @ R.T
+            system.positions = system.positions @ R.T
+            # change momentum TensorMap in place
+            system.get_data("momenta").block().values[:] = (
+                system.get_data("momenta").block().values.squeeze(-1) @ R.T
+            ).unsqueeze(-1)
+
         new_system = self.stepper.step(system)
+
+        if self.random_rotation:
+            # revert q, p to the original reference frame, load old cell
+            new_system.cell = old_cell
+            new_system.positions = new_system.positions @ R
+            new_system.get_data("momenta").block().values[:] = (
+                new_system.get_data("momenta").block().values.squeeze(-1) @ R
+            ).unsqueeze(-1)
+
         self.atoms.set_positions(new_system.positions.detach().cpu().numpy())
         self.atoms.set_momenta(
             new_system.get_data("momenta")
@@ -71,6 +93,38 @@ class VelocityVerlet(MolecularDynamics):
             old_kinetic_energy = self.atoms.get_kinetic_energy()
             alpha = np.sqrt(1.0 - (new_energy - old_energy) / old_kinetic_energy)
             self.atoms.set_momenta(alpha * self.atoms.get_momenta())
+
+    def irun(self, steps=50):
+        # We have to override irun to avoid calling MolecularDynamics.irun(), which
+        # calls gradients to check convergence (optimizer-like behavior) or to log the
+        # forces, depending on the ASE version. This function is a copy of
+        # Dynamics.irun(), where the calls to the forces are commented out.
+
+        # update the maximum number of steps
+        self.max_steps = self.nsteps + steps
+
+        if self.nsteps == 0:
+            # For historical reasons we do a magical incantation
+            # here with forces, log, observers.
+            # self.atoms.get_forces()
+            self.log()
+            self.call_observers()
+
+        yield self.nsteps == self.max_steps
+
+        # run the algorithm until converged or max_steps reached
+        while self.nsteps < self.max_steps:
+            self.step()
+            self.nsteps += 1
+            # self.atoms.get_forces()
+            self.log()
+            self.call_observers()
+            yield self.nsteps == self.max_steps
+
+    def run(self, steps=50):
+        # needed for ASE <= 3.26.0; in 3.27.0 Dynamics.run() works well for us
+        for _ in self.irun(steps=steps):
+            pass
 
 
 def _convert_atoms_to_system(
@@ -126,3 +180,10 @@ def _convert_atoms_to_system(
         ),
     )
     return system
+
+
+def _get_random_rotation():
+    R = Rotation.random().as_matrix()
+    if np.random.rand() < 0.5:
+        R *= -1  # allow improper rotations
+    return R

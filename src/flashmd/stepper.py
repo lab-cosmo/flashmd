@@ -1,45 +1,32 @@
 # from ..utils.pretrained import load_pretrained_models
-from metatomic.torch import ModelEvaluationOptions, ModelOutput
-from metatensor.torch import Labels, TensorBlock, TensorMap
+import ase.units
 import torch
-from metatomic.torch import System
+from metatensor.torch import Labels, TensorBlock, TensorMap
+from metatomic.torch import AtomisticModel, ModelEvaluationOptions, ModelOutput, System
 from metatrain.utils.neighbor_lists import get_system_with_neighbor_lists
-from typing import List
-from metatomic.torch import AtomisticModel
+
+from .constraints import enforce_physical_constraints
 
 
 class FlashMDStepper:
     def __init__(
         self,
-        models: List[AtomisticModel],
-        n_time_steps: int,
+        model: AtomisticModel,
         device: torch.device,
-        # q_error_threshold: float = 0.1,
-        # p_error_threshold: float = 0.1,
-        # energy_error_threshold: float = 0.1,
     ):
-        self.n_time_steps = n_time_steps
-
-        # internally, turn list of models into a dict and send to device
-        self.models = {}
-        for model in models:
-            n_time_steps_model = int(
-                [k for k in model.capabilities().outputs.keys() if "mtt::delta_" in k][
-                    0
-                ].split("_")[1]
-            )
-            self.models[n_time_steps_model] = model.to(device)
+        self.model = model.to(device)
+        self.time_step = float(model.module.timestep) * ase.units.fs
 
         # one of these for each model:
         self.evaluation_options = ModelEvaluationOptions(
             length_unit="Angstrom",
             outputs={
-                f"mtt::delta_{self.n_time_steps}_q": ModelOutput(per_atom=True),
-                f"mtt::p_{self.n_time_steps}": ModelOutput(per_atom=True),
+                "positions": ModelOutput(per_atom=True),
+                "momenta": ModelOutput(per_atom=True),
             },
         )
 
-        self.dtype = getattr(torch, self.models[n_time_steps].capabilities().dtype)
+        self.dtype = getattr(torch, self.model.capabilities().dtype)
         self.device = device
 
     def step(self, system: System):
@@ -49,27 +36,22 @@ class FlashMDStepper:
             raise ValueError("System dtype does not match stepper dtype.")
 
         system = get_system_with_neighbor_lists(
-            system, self.models[self.n_time_steps].requested_neighbor_lists()
+            system, self.model.requested_neighbor_lists()
         )
 
         masses = system.get_data("masses").block().values
-        model_outputs = self.models[self.n_time_steps](
+        model_outputs = self.model(
             [system], self.evaluation_options, check_consistency=False
         )
-        delta_q_scaled = (
-            model_outputs[f"mtt::delta_{self.n_time_steps}_q"]
-            .block()
-            .values.squeeze(-1)
+        model_outputs = enforce_physical_constraints(
+            [system], model_outputs, timestep=self.time_step
         )
-        p_scaled = (
-            model_outputs[f"mtt::p_{self.n_time_steps}"].block().values.squeeze(-1)
-        )
-        sqrt_masses = torch.sqrt(masses)
-        delta_q = delta_q_scaled / sqrt_masses
-        p = p_scaled * sqrt_masses
+
+        new_q = model_outputs["positions"].block().values.squeeze(-1)
+        new_p = model_outputs["momenta"].block().values.squeeze(-1)
 
         new_system = System(
-            positions=system.positions + delta_q,
+            positions=new_q,
             types=system.types,
             cell=system.cell,
             pbc=system.pbc,
@@ -80,7 +62,7 @@ class FlashMDStepper:
                 keys=Labels.single().to(self.device),
                 blocks=[
                     TensorBlock(
-                        values=p.unsqueeze(-1),
+                        values=new_p.unsqueeze(-1),
                         samples=Labels(
                             names=["system", "atom"],
                             values=torch.tensor(
