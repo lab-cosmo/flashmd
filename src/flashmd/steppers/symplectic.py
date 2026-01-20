@@ -105,9 +105,6 @@ class SymplecticStepper(AtomisticStepper):
         Returns:
             The updated midpoint in phase-space representation.
         """
-        # flatten the batch dimension
-        x_bar = x_bar.squeeze(0)
-
         # convert to system representation
         midpoint_system = phase_space_to_system(system, x_bar)
 
@@ -117,9 +114,8 @@ class SymplecticStepper(AtomisticStepper):
         )
 
         # run the model to get the deltas
-        evaluation_options = self.evaluation_options
         outputs = self.midpoint_to_delta_model(
-            [midpoint_system], evaluation_options, check_consistency=False
+            [midpoint_system], self.evaluation_options, check_consistency=False
         )
 
         # depending on the model, extract deltas
