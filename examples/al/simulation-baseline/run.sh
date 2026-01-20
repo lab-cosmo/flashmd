@@ -1,0 +1,1 @@
+pixi run i-pi baseline.xml
