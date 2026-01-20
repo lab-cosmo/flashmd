@@ -1,6 +1,6 @@
 from .core import AtomisticStepper
-from .symplectic import SymplecticStepper
 from .flashmd import FlashMDStepper
+from .symplectic import SymplecticStepper
 
 
 __all__ = ["AtomisticStepper", "FlashMDStepper", "SymplecticStepper"]
