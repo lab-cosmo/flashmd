@@ -30,7 +30,8 @@ def anderson_solver(
         Approximate solution x, and optionally list of residual norms.
     """
     # history buffers
-    delta_xs, delta_gs = [], []
+    delta_xs: list[torch.Tensor] = []
+    delta_gs: list[torch.Tensor] = []
     residual_norms = []
 
     # run fixed-pointer iteration
