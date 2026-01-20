@@ -1,3 +1,4 @@
+from attr import has
 from ipi.utils.depend import dstrip
 from ipi.utils.units import Constants
 from ipi.utils.messages import verbosity, info
@@ -60,21 +61,29 @@ def get_standard_vv_step(
 def get_flashmd_vv_step(sim, symplectic_model, model, device, rescale_energy=True, random_rotation=False, accuracy_threshold=1e-3, alpha=0.5):
     capabilities = model.capabilities()
 
-    base_timestep = float(model.module.base_time_step) * ase.units.fs
+    if hasattr(model.module, "base_time_step"):
+        base_timestep = float(model.module.base_time_step) * ase.units.fs
+        n_time_steps = int(
+            [k for k in capabilities.outputs.keys() if "mtt::delta_" in k][0].split("_")[1]
+        )
+        timestep = base_timestep * n_time_steps
+    elif hasattr(model.module, "timestep"):
+        timestep = float(model.module.timestep) * ase.units.fs
+    else:
+        raise ValueError(
+            "The model does not specify a base timestep (attribute 'base_time_step' or 'timestep')."
+        )
 
     dt = sim.syslist[0].motion.dt * 2.4188843e-17 * ase.units.s
 
-    n_time_steps = int(
-        [k for k in capabilities.outputs.keys() if "mtt::delta_" in k][0].split("_")[1]
-    )
-    if not np.allclose(dt, n_time_steps * base_timestep):
+    if not np.allclose(dt, timestep):
         raise ValueError(
-            f"Mismatch between timestep ({dt}) and model timestep ({base_timestep})."
+            f"Mismatch between timestep ({dt}) and model timestep ({timestep})."
         )
 
     device = torch.device(device)
     dtype = getattr(torch, capabilities.dtype)
-    stepper = Stepper(symplectic_model, [model], n_time_steps, device, accuracy_threshold=accuracy_threshold, alpha=alpha)
+    stepper = Stepper(symplectic_model, model, device, accuracy_threshold=accuracy_threshold, alpha=alpha)
 
     def flashmd_vv(motion):
         info("@flashmd: Starting VV", verbosity.debug)
@@ -361,9 +370,9 @@ def ipi_to_system(motion, device, dtype):
 def system_to_ipi(motion, system):
     # only needs to convert positions and momenta, it's assumed that the cell won't be changed
     motion.beads.q[:] = (
-        system.positions.cpu().numpy().flatten() * ase.units.Angstrom / ase.units.Bohr
+        system.positions.detach().cpu().numpy().flatten() * ase.units.Angstrom / ase.units.Bohr
     )
-    motion.beads.p[:] = system.get_data("momenta").block().values.squeeze(
+    motion.beads.p[:] = system.get_data("momenta").block().values.detach().squeeze(
         -1
     ).cpu().numpy().flatten() / (
         (9.1093819e-31 * ase.units.kg)
@@ -386,19 +395,18 @@ class Stepper(FlashMDStepper):
     def __init__(
         self,
         model: AtomisticModel,
-        models: List[AtomisticModel],
-        n_time_steps: int,
+        flashmd: AtomisticModel,
         device: torch.device,
         accuracy_threshold: float = 1e-3,
         alpha: float = 0.5,
     ):
-        super().__init__(models, n_time_steps, device)
+        super().__init__(flashmd, device)
         self.model = model
         self.evaluation_options_implicit = ModelEvaluationOptions(
             length_unit="Angstrom",
             outputs={
-                f"mtt::delta_{self.n_time_steps}_q": ModelOutput(per_atom=True),
-                f"mtt::delta_{self.n_time_steps}_p": ModelOutput(per_atom=True),
+                "positions": ModelOutput(per_atom=True),
+                "momenta": ModelOutput(per_atom=True),
             },
         )
         self.accuracy_threshold = accuracy_threshold
@@ -432,8 +440,8 @@ class Stepper(FlashMDStepper):
                 midpoint_system, self.model.requested_neighbor_lists()
             )
             outputs = self.model([midpoint_system], self.evaluation_options_implicit, check_consistency=False)
-            delta_q = outputs[f"mtt::delta_{self.n_time_steps}_q"].block().values.squeeze(-1)
-            delta_p = outputs[f"mtt::delta_{self.n_time_steps}_p"].block().values
+            delta_q = outputs[f"positions"].block().values.squeeze(-1)
+            delta_p = outputs[f"momenta"].block().values
             new_system = get_system(
                 system.positions + delta_q,
                 system.types,
