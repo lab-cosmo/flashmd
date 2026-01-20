@@ -2,8 +2,7 @@ from typing import Callable
 import torch
 from metatomic.torch import load_atomistic_model
 from ipi.utils.scripting import InteractiveSimulation
-from flashmd.steppers import SymplecticStepper
-from flashmd.stepper import FlashMDStepper
+from flashmd.steppers import SymplecticStepper, FlashMDStepper
 from flashmd.vv import flashmd_vv
 from flashmd.wrappers import wrap_nvt
 from flashmd.fpi import anderson_solver

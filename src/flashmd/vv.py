@@ -8,7 +8,7 @@ from ipi.utils.messages import info, verbosity
 from metatensor.torch import Labels, TensorBlock, TensorMap
 from metatomic.torch import System
 
-from .stepper import AtomisticStepper
+from .steppers.flashmd import AtomisticStepper
 
 
 def standard_vv(sim, rescale_energy: bool = False):
@@ -53,31 +53,9 @@ def flashmd_vv(
     stepper: AtomisticStepper,
     device: torch.device,
     dtype: torch.dtype,
-    # symplectic_model,
-    # model,
-    # device,
     rescale_energy=True,
     random_rotation=False,
-    # accuracy_threshold=1e-3,
-    # alpha=0.5,
 ):
-    # capabilities = model.capabilities()
-
-    # if hasattr(model.module, "base_time_step"):
-    #    base_timestep = float(model.module.base_time_step) * ase.units.fs
-    #    n_time_steps = int(
-    #        [k for k in capabilities.outputs.keys() if "mtt::delta_" in k][0].split(
-    #            "_"
-    #        )[1]
-    #    )
-    #    timestep = base_timestep * n_time_steps
-    # elif hasattr(model.module, "timestep"):
-    #    timestep = float(model.module.timestep) * ase.units.fs
-    # else:
-    #    raise ValueError(
-    #        "The model does not specify a base timestep (attribute 'base_time_step' or 'timestep')."
-    #    )
-
     # compare the model's internal timestep with the i-PI one -- they need to match
     dt = sim.syslist[0].motion.dt * 2.4188843e-17 * ase.units.s
     timestep = stepper.get_timestep()
@@ -85,17 +63,7 @@ def flashmd_vv(
         raise ValueError(
             f"Mismatch between timestep ({dt}) and model timestep ({timestep})."
         )
-
-    # device = torch.device(device)
-    # dtype = getattr(torch, capabilities.dtype)
-    # stepper = Stepper(
-    #    symplectic_model,
-    #    model,
-    #    device,
-    #    accuracy_threshold=accuracy_threshold,
-    #    alpha=alpha,
-    # )
-
+    
     def flashmd_vv(motion):
         info("@flashmd: Starting VV", verbosity.debug)
         old_energy = None

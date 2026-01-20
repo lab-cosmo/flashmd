@@ -4,8 +4,8 @@ import vesin.metatomic
 from metatensor.torch import Labels, TensorBlock, TensorMap
 from metatomic.torch import AtomisticModel, ModelEvaluationOptions, ModelOutput, System
 
-from .constraints import enforce_physical_constraints
-from .steppers import AtomisticStepper
+from ..constraints import enforce_physical_constraints
+from . import AtomisticStepper
 
 
 class FlashMDStepper(AtomisticStepper):

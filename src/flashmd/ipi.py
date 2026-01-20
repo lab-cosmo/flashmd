@@ -10,7 +10,7 @@ from ipi.utils.units import Constants
 from metatensor.torch import Labels, TensorBlock, TensorMap
 from metatomic.torch import System
 
-from flashmd.stepper import FlashMDStepper
+from flashmd.steppers.flashmd import FlashMDStepper
 
 
 def get_standard_vv_step(

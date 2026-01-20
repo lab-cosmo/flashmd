@@ -1,7 +1,7 @@
 import torch
 from ipi.utils.scripting import InteractiveSimulation
 from flashmd import get_pretrained
-from flashmd.stepper import FlashMDStepper
+from flashmd.steppers import FlashMDStepper
 from flashmd.wrappers import wrap_nvt
 from flashmd.vv import flashmd_vv
 
