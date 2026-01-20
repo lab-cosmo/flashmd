@@ -63,7 +63,7 @@ def flashmd_vv(
         raise ValueError(
             f"Mismatch between timestep ({dt}) and model timestep ({timestep})."
         )
-    
+
     def flashmd_vv(motion):
         info("@flashmd: Starting VV", verbosity.debug)
         old_energy = None
