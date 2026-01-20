@@ -4,8 +4,8 @@ from metatensor.torch import Labels, TensorBlock, TensorMap
 from metatomic.torch import AtomisticModel, ModelEvaluationOptions, ModelOutput, System
 from metatrain.utils.neighbor_lists import get_system_with_neighbor_lists
 
-from .constraints import enforce_physical_constraints
-from .steppers import AtomisticStepper
+from ..constraints import enforce_physical_constraints
+from . import AtomisticStepper
 
 
 class FlashMDStepper(AtomisticStepper):

@@ -1,7 +1,7 @@
 import torch
 from metatomic.torch import load_atomistic_model
 from ipi.utils.scripting import InteractiveSimulation
-from flashmd.stepper import FlashMDStepper
+from flashmd.steppers import FlashMDStepper
 from flashmd.vv import flashmd_vv
 from flashmd.wrappers.nvt import wrap_nvt
 
