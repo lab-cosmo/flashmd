@@ -112,6 +112,9 @@ FlashMD models can be trained from the **metatrain library**. This
 [tutorial](https://docs.metatensor.org/metatrain/latest/generated_examples/1-advanced/04-flashmd.html)
 shows how to train your own FlashMD model, either from scratch or by fine-tuning of one of our universal models.
 
+The trajectory datasets generated with the PET-MAD baseline MLIPs used in the paper can be found in [this
+repository](https://zenodo.org/records/17904449).
+
 Disclaimer
 ----------
 
