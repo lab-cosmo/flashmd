@@ -88,7 +88,6 @@ def flashmd_vv(
             momenta = system.get_data("momenta").block(0).values.squeeze()
             momenta[:] = momenta @ R.T  # does the change in place
 
-        print(system)
         new_system = stepper.step(system)
 
         if random_rotation:
