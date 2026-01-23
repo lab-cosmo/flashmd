@@ -1,0 +1,9 @@
+*.xyz*
+*.extxyz*
+*.out*
+*RESTART*
+outputs
+*.pt
+wandb
+*.ckpt
+RESTART

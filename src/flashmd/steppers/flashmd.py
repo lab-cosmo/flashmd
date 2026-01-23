@@ -1,14 +1,14 @@
-# from ..utils.pretrained import load_pretrained_models
 import ase.units
 import torch
 from metatensor.torch import Labels, TensorBlock, TensorMap
 from metatomic.torch import AtomisticModel, ModelEvaluationOptions, ModelOutput, System
 from metatrain.utils.neighbor_lists import get_system_with_neighbor_lists
 
-from .constraints import enforce_physical_constraints
+from ..constraints import enforce_physical_constraints
+from . import AtomisticStepper
 
 
-class FlashMDStepper:
+class FlashMDStepper(AtomisticStepper):
     def __init__(
         self,
         model: AtomisticModel,
@@ -17,7 +17,6 @@ class FlashMDStepper:
         self.model = model.to(device)
         self.time_step = float(model.module.timestep) * ase.units.fs
 
-        # one of these for each model:
         self.evaluation_options = ModelEvaluationOptions(
             length_unit="Angstrom",
             outputs={
@@ -28,6 +27,9 @@ class FlashMDStepper:
 
         self.dtype = getattr(torch, self.model.capabilities().dtype)
         self.device = device
+
+    def get_timestep(self) -> float:
+        return self.time_step
 
     def step(self, system: System):
         if system.device.type != self.device.type:
