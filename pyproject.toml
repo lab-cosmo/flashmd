@@ -80,4 +80,6 @@ markers = [
 filterwarnings = [
     "error",
     "ignore:custom data:UserWarning",
+    "ignore:`torch.jit.script` is deprecated:DeprecationWarning",
+    "ignore:`torch.jit.load` is deprecated:DeprecationWarning",
 ]
