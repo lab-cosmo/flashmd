@@ -8,7 +8,7 @@ from metatomic.torch import AtomisticModel, System
 from metatomic.torch.ase_calculator import _ase_to_torch_data
 from scipy.spatial.transform import Rotation
 
-from ..stepper import FlashMDStepper
+from ..steppers.flashmd import FlashMDStepper
 
 
 class VelocityVerlet(MolecularDynamics):
