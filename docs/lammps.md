@@ -8,7 +8,7 @@ Running in LAMMPS is supported starting from FlashMD 0.2.5. Make sure you have a
 updated version:
 
 ```bash
-    pip install flashmd --upgrade
+pip install flashmd --upgrade
 ```
 
 Next, you will need to install a version of LAMMPS with FlashMD enabled. Here, we focus
@@ -47,12 +47,12 @@ LAMMPS will need the FlashMD model and, in some cases, the energy model (MLIP) i
 trained on. Here is how you can get them in the current directory from Python:
 
 ```py
-    from flashmd import get_pretrained
+from flashmd import get_pretrained
 
-    time_step = 16  # 16 fs, also available: 1, 2, 4, 8, 32, 64, 128 fs
-    energy_model, flashmd_model = get_pretrained("pet-omatpes-v2", time_step)
-    energy_model.save("mlip.pt")
-    flashmd_model.save(f"flashmd-{time_step}.pt")
+time_step = 16  # 16 fs, also available: 1, 2, 4, 8, 32, 64, 128 fs
+energy_model, flashmd_model = get_pretrained("pet-omatpes-v2", time_step)
+energy_model.save("mlip.pt")
+flashmd_model.save(f"flashmd-{time_step}.pt")
 ```
 
 **Note:** Stick to no more than 30x the time step that you would use in normal MD for your system!
