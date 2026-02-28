@@ -21,7 +21,7 @@ def test_isolated_atom(monkeypatch, tmp_path):
 
     dyn = VelocityVerlet(
         atoms=atoms,
-        timestep=time_step*ase.units.fs,
+        timestep=time_step * ase.units.fs,
         model=flashmd_model,
         device=device,
     )
@@ -45,7 +45,7 @@ def test_slab_plus_isolated_atom(monkeypatch, tmp_path):
 
     dyn = VelocityVerlet(
         atoms=atoms,
-        timestep=time_step*ase.units.fs,
+        timestep=time_step * ase.units.fs,
         model=flashmd_model,
         device=device,
     )

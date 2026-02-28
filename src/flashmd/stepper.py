@@ -1,9 +1,9 @@
 # from ..utils.pretrained import load_pretrained_models
 import ase.units
 import torch
+import vesin.metatomic
 from metatensor.torch import Labels, TensorBlock, TensorMap
 from metatomic.torch import AtomisticModel, ModelEvaluationOptions, ModelOutput, System
-import vesin.metatomic
 
 from .constraints import enforce_physical_constraints
 
