@@ -1,11 +1,10 @@
 import ase.build
-import ase.io
 import ase.units
 import torch
-from ase.md import VelocityVerlet
 
 from flashmd import get_pretrained
 from flashmd.ase import EnergyCalculator
+from flashmd.ase.velocity_verlet import VelocityVerlet
 
 
 def test_isolated_atom(monkeypatch, tmp_path):
@@ -14,13 +13,18 @@ def test_isolated_atom(monkeypatch, tmp_path):
 
     atoms = ase.Atoms("O", positions=[[0, 0, 0]])
 
-    time_step = 64
+    time_step = 8
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    energy_model, _ = get_pretrained("pet-omatpes-v2", time_step)
+    energy_model, flashmd_model = get_pretrained("pet-omatpes-v2", time_step)
     calculator = EnergyCalculator(energy_model, device=device)
     atoms.calc = calculator
 
-    dyn = VelocityVerlet(atoms=atoms, timestep=time_step * ase.units.fs)
+    dyn = VelocityVerlet(
+        atoms=atoms,
+        timestep=time_step*ase.units.fs,
+        model=flashmd_model,
+        device=device,
+    )
     dyn.run(10)
 
 
@@ -33,11 +37,16 @@ def test_slab_plus_isolated_atom(monkeypatch, tmp_path):
     isolated_atom = ase.Atoms("O", positions=[[0, 0, 24]])
     atoms = slab + isolated_atom
 
-    time_step = 64
+    time_step = 8
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    energy_model, _ = get_pretrained("pet-omatpes-v2", time_step)
+    energy_model, flashmd_model = get_pretrained("pet-omatpes-v2", time_step)
     calculator = EnergyCalculator(energy_model, device=device)
     atoms.calc = calculator
 
-    dyn = VelocityVerlet(atoms=atoms, timestep=time_step * ase.units.fs)
+    dyn = VelocityVerlet(
+        atoms=atoms,
+        timestep=time_step*ase.units.fs,
+        model=flashmd_model,
+        device=device,
+    )
     dyn.run(10)

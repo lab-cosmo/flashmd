@@ -3,7 +3,7 @@ import ase.units
 import torch
 from metatensor.torch import Labels, TensorBlock, TensorMap
 from metatomic.torch import AtomisticModel, ModelEvaluationOptions, ModelOutput, System
-from metatrain.utils.neighbor_lists import get_system_with_neighbor_lists
+import vesin.metatomic
 
 from .constraints import enforce_physical_constraints
 
@@ -35,9 +35,7 @@ class FlashMDStepper:
         if system.positions.dtype != self.dtype:
             raise ValueError("System dtype does not match stepper dtype.")
 
-        system = get_system_with_neighbor_lists(
-            system, self.model.requested_neighbor_lists()
-        )
+        vesin.metatomic.compute_requested_neighbors([system], "angstrom", self.model)
 
         masses = system.get_data("masses").block().values
         model_outputs = self.model(
