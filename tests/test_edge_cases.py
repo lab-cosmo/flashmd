@@ -1,11 +1,11 @@
 import ase.build
-import ase.io
 import ase.units
 import torch
-from ase.md import VelocityVerlet
+from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
 
 from flashmd import get_pretrained
 from flashmd.ase import EnergyCalculator
+from flashmd.ase.velocity_verlet import VelocityVerlet
 
 
 def test_isolated_atom(monkeypatch, tmp_path):
@@ -13,14 +13,20 @@ def test_isolated_atom(monkeypatch, tmp_path):
     monkeypatch.chdir(tmp_path)
 
     atoms = ase.Atoms("O", positions=[[0, 0, 0]])
+    MaxwellBoltzmannDistribution(atoms, temperature_K=300)
 
-    time_step = 64
+    time_step = 8
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    energy_model, _ = get_pretrained("pet-omatpes-v2", time_step)
+    energy_model, flashmd_model = get_pretrained("pet-omatpes-v2", time_step)
     calculator = EnergyCalculator(energy_model, device=device)
     atoms.calc = calculator
 
-    dyn = VelocityVerlet(atoms=atoms, timestep=time_step * ase.units.fs)
+    dyn = VelocityVerlet(
+        atoms=atoms,
+        timestep=time_step * ase.units.fs,
+        model=flashmd_model,
+        device=device,
+    )
     dyn.run(10)
 
 
@@ -32,12 +38,18 @@ def test_slab_plus_isolated_atom(monkeypatch, tmp_path):
     slab = ase.build.fcc111("Al", size=(2, 2, 3), vacuum=10)
     isolated_atom = ase.Atoms("O", positions=[[0, 0, 24]])
     atoms = slab + isolated_atom
+    MaxwellBoltzmannDistribution(atoms, temperature_K=300)
 
-    time_step = 64
+    time_step = 8
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    energy_model, _ = get_pretrained("pet-omatpes-v2", time_step)
+    energy_model, flashmd_model = get_pretrained("pet-omatpes-v2", time_step)
     calculator = EnergyCalculator(energy_model, device=device)
     atoms.calc = calculator
 
-    dyn = VelocityVerlet(atoms=atoms, timestep=time_step * ase.units.fs)
+    dyn = VelocityVerlet(
+        atoms=atoms,
+        timestep=time_step * ase.units.fs,
+        model=flashmd_model,
+        device=device,
+    )
     dyn.run(10)
