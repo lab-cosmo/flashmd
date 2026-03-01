@@ -27,20 +27,29 @@ def enforce_physical_constraints(
             total_masses = [m.sum() for m in masses]
             momenta_before = [s.get_data("momenta").block().values for s in systems]
             momenta_now = torch.split(prediction_tmap.block().values, system_sizes)
-            velocities_now = [p / m[:, None] for p, m in zip(momenta_now, masses)]
+            velocities_now = [
+                p / m[:, None] for p, m in zip(momenta_now, masses, strict=True)
+            ]
             velocities_com_before = [
-                torch.sum(p, dim=0) / M for p, M in zip(momenta_before, total_masses)
+                torch.sum(p, dim=0) / M
+                for p, M in zip(momenta_before, total_masses, strict=True)
             ]
             velocities_com_now = [
-                torch.sum(p, dim=0) / M for p, M in zip(momenta_now, total_masses)
+                torch.sum(p, dim=0) / M
+                for p, M in zip(momenta_now, total_masses, strict=True)
             ]
             velocities_now = [
                 v - v_com_now_i + v_com_before_i
                 for v, v_com_before_i, v_com_now_i in zip(
-                    velocities_now, velocities_com_before, velocities_com_now
+                    velocities_now,
+                    velocities_com_before,
+                    velocities_com_now,
+                    strict=True,
                 )
             ]
-            momenta_now = [v * m[:, None] for v, m in zip(velocities_now, masses)]
+            momenta_now = [
+                v * m[:, None] for v, m in zip(velocities_now, masses, strict=True)
+            ]
             new_predictions[key] = TensorMap(
                 prediction_tmap.keys,
                 [
@@ -61,15 +70,16 @@ def enforce_physical_constraints(
             momenta = [s.get_data("momenta").block().values for s in systems]
             positions_now = torch.split(prediction_tmap.block().values, system_sizes)
             velocities_com = [
-                torch.sum(p, dim=0) / M for p, M in zip(momenta, total_masses)
+                torch.sum(p, dim=0) / M
+                for p, M in zip(momenta, total_masses, strict=True)
             ]
             positions_com_before = [
                 torch.sum(q * m[:, None], dim=0) / M
-                for q, m, M in zip(positions_before, masses, total_masses)
+                for q, m, M in zip(positions_before, masses, total_masses, strict=True)
             ]
             positions_com_now = [
                 torch.sum(q * m[:, None], dim=0) / M
-                for q, m, M in zip(positions_now, masses, total_masses)
+                for q, m, M in zip(positions_now, masses, total_masses, strict=True)
             ]
             positions_now = [
                 q - q_com_now_i + q_com_before_i + v_com_i * timestep
@@ -78,6 +88,7 @@ def enforce_physical_constraints(
                     positions_com_now,
                     positions_com_before,
                     velocities_com,
+                    strict=True,
                 )
             ]
             new_predictions[key] = TensorMap(
