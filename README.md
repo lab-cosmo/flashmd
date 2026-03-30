@@ -162,4 +162,4 @@ Materials Cloud at https://doi.org/10.24435/materialscloud:b7-xq.
 Maintainers
 -----------
 
-This project is [maintained](https://github.com/lab-cosmo/.github/blob/main/Maintainers.md) by @frostedoyster and @johannes-spies, who will reply to issues and pull requests opened on this repository as soon as possible. You can mention them directly if you did not receive an answer after a couple of days.
+This project is [maintained](https://github.com/lab-cosmo/.github/blob/main/Maintainers.md) by [@frostedoyster](https://github.com/frostedoyster) and [@johannes-spies](https://github.com/johannes-spies), who will reply to issues and pull requests opened on this repository as soon as possible. You can mention them directly if you did not receive an answer after a couple of days.
