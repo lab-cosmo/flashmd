@@ -95,7 +95,7 @@ Using FlashMD in i-PI
 ---------------------
 
 You can see
-[this cookbook recipe](https://atomistic-cookbook.org/examples/flashmd/flashmd-demo.html) 
+[this cookbook recipe](https://atomistic-cookbook.org/examples/flashmd/flashmd-demo.html)
 for usage examples. i-PI is our most mature interface, and the one that was used to
 generate all our published results.
 
@@ -158,3 +158,8 @@ Note that the results were obtained through the i-PI interface.
 
 Instructions and material to reproduce the results in the paper are available on
 Materials Cloud at https://doi.org/10.24435/materialscloud:b7-xq.
+
+Maintainers
+-----------
+
+This project is [maintained](https://github.com/lab-cosmo/.github/blob/main/Maintainers.md) by @frostedoyster and @johannes-spies, who will reply to issues and pull requests opened on this repository as soon as possible. You can mention them directly if you did not receive an answer after a couple of days.
