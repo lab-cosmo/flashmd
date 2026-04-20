@@ -4,7 +4,7 @@ base_precision: 32
 architecture:
   name: experimental.flashmd_symplectic
   training:
-    timestep: 32  # in this case 30 (time lag) * 1 fs (timestep of reference MD)
+    timestep: 8  # in this case 4 (time lag) * 2 fs (timestep of reference MD)
     batch_size: 8  # to be increased in a production scenario
     num_epochs: 100  # to be increased (at least 1000-10000) in a production scenario
     log_interval: 1
@@ -24,7 +24,7 @@ architecture:
 
 training_set:
   systems:
-    read_from: data/midpoint-to-delta.xyz
+    read_from: midpoint-to-delta.xyz
     length_unit: A
   targets:
     positions:
@@ -46,10 +46,3 @@ training_set:
 
 validation_set: 0.1
 test_set: 0.0
-
-wandb:
-  project: flashmd-variants
-  name: symplectic-flashmd 
-  tags:
-    - al
-    - symplectic-flashmd

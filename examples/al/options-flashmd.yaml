@@ -1,12 +1,14 @@
 seed: 42
+base_precision: 32
 
 architecture:
   name: experimental.flashmd
   training:
-    timestep: 32  # in this case 32 (time lag) * 1 fs (timestep of reference MD)
+    timestep: 8 # in this case 4 (time lag) * 2 fs (timestep of reference MD)
     batch_size: 8  # to be increased in a production scenario
     num_epochs: 100  # to be increased (at least 1000-10000) in a production scenario
     log_interval: 1
+    learning_rate: 3e-4
     loss:
       positions:
         type: mse
@@ -19,7 +21,7 @@ architecture:
 
 training_set:
   systems:
-    read_from: data/start-to-end.xyz
+    read_from: start-to-end.xyz
     length_unit: A
   targets:
     positions:
@@ -40,11 +42,4 @@ training_set:
       per_atom: true
 
 validation_set: 0.1
-test_set: 0.1
-
-wandb:
-  project: flashmd-variants
-  name: flashmd-baseline
-  tags:
-    - al
-    - flashmd
+test_set: 0.0

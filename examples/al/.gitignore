@@ -1,9 +1,10 @@
-*.xyz*
-*.extxyz*
-*.out*
-*RESTART*
-outputs
-*.pt
-wandb
-*.ckpt
+# ignore generated dataset and simulation files
+*.*xyz
 RESTART
+*#
+*.out
+
+# ignore training artifacts
+outputs/
+*.pt
+*.ckpt

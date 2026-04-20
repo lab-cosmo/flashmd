@@ -1,6 +1,6 @@
 <simulation verbosity='low' threading='false'>
-   <total_steps>3200</total_steps>
-   <output prefix='md'>
+   <total_steps>100</total_steps>
+   <output prefix='PREFIX'>
       <trajectory stride='1' filename='pos' format='ase'> positions </trajectory>
       <trajectory stride='1' filename='vel' format='xyz'> velocities </trajectory>
       <properties stride='1'> [ step, time{picosecond}, conserved, temperature{kelvin} ] </properties> 
@@ -8,25 +8,25 @@
    <prng>
       <seed>32123</seed>
    </prng>
+   <!-- Declare a "dummy" forcefield. We're not going to use it because the FlashMD flavors replace the `motion_step`. -->
    <ffdirect name='mlip'>
       <pes>metatomic</pes>
-      <parameters>{model: ../models/mlip_pet-omatpes-v2.pt, template: ../data/equilibrated.xyz, device: cuda}</parameters>
+      <parameters>{model:./pet-mad-s-v1.5.0.pt, template:./al.xyz, device:cuda}</parameters>
     </ffdirect>
    <system>
+      <!-- Use the dummy force field here. -->
       <forces> 
          <force forcefield='mlip'></force>
       </forces>
+
       <initialize nbeads='1'>
-         <file mode='ase'>../data/equilibrated.xyz</file>
-         <velocities mode='thermal' units='kelvin'>300</velocities>
+         <file mode='ase'>./al.xyz</file>
+         <velocities mode='thermal' units='kelvin'>400</velocities>
       </initialize>
-      <ensemble>
-         <temperature units='kelvin'>300</temperature>
-      </ensemble>
       <motion mode='dynamics'>
-         <dynamics mode='nvt'>
-            <timestep units='femtosecond'>1</timestep>
-            <thermostat mode='svr'><tau units='femtosecond'>2</tau></thermostat>
+         <dynamics mode='nve'>
+            <!-- This needs to match the FlashMD time step! -->
+            <timestep units='femtosecond'>8</timestep>
          </dynamics>
       </motion>
   </system>
