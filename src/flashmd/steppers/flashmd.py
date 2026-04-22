@@ -1,11 +1,11 @@
 import ase.units
 import torch
 import vesin.metatomic
-from metatensor.torch import Labels, TensorBlock, TensorMap
 from metatomic.torch import AtomisticModel, ModelEvaluationOptions, ModelOutput, System
 
 from ..constraints import enforce_physical_constraints
 from . import AtomisticStepper
+from .utils import build_system
 
 
 class FlashMDStepper(AtomisticStepper):
@@ -39,7 +39,6 @@ class FlashMDStepper(AtomisticStepper):
 
         vesin.metatomic.compute_requested_neighbors([system], "angstrom", self.model)
 
-        masses = system.get_data("masses").block().values
         model_outputs = self.model(
             [system], self.evaluation_options, check_consistency=False
         )
@@ -50,57 +49,4 @@ class FlashMDStepper(AtomisticStepper):
         new_q = model_outputs["positions"].block().values.squeeze(-1)
         new_p = model_outputs["momenta"].block().values.squeeze(-1)
 
-        new_system = System(
-            positions=new_q,
-            types=system.types,
-            cell=system.cell,
-            pbc=system.pbc,
-        )
-        new_system.add_data(
-            "momenta",
-            TensorMap(
-                keys=Labels.single().to(self.device),
-                blocks=[
-                    TensorBlock(
-                        values=new_p.unsqueeze(-1),
-                        samples=Labels(
-                            names=["system", "atom"],
-                            values=torch.tensor(
-                                [[0, j] for j in range(len(new_system))],
-                                device=self.device,
-                            ),
-                        ),
-                        components=[
-                            Labels(
-                                names="xyz",
-                                values=torch.tensor(
-                                    [[0], [1], [2]], device=self.device
-                                ),
-                            )
-                        ],
-                        properties=Labels.single().to(self.device),
-                    )
-                ],
-            ),
-        )
-        new_system.add_data(
-            "masses",
-            TensorMap(
-                keys=Labels.single().to(self.device),
-                blocks=[
-                    TensorBlock(
-                        values=masses,
-                        samples=Labels(
-                            names=["system", "atom"],
-                            values=torch.tensor(
-                                [[0, j] for j in range(len(new_system))],
-                                device=self.device,
-                            ),
-                        ),
-                        components=[],
-                        properties=Labels.single().to(self.device),
-                    )
-                ],
-            ),
-        )
-        return new_system
+        return build_system(system, new_q, new_p)

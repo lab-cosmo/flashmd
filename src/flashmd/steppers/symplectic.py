@@ -3,56 +3,36 @@ from typing import Callable
 
 import ase.units
 import torch
-from metatensor.torch import Labels, TensorBlock, TensorMap
 from metatomic.torch import AtomisticModel, ModelEvaluationOptions, ModelOutput, System
 from metatrain.utils.neighbor_lists import get_system_with_neighbor_lists
 
 from flashmd.steppers import AtomisticStepper
+from flashmd.steppers.utils import build_system
 
 
-def system_to_phase_space(system) -> torch.Tensor:
-    # extract positions and momenta from system
+def system_to_phase_space(system: System) -> torch.Tensor:
+    """Flatten a System into a phase-space vector [positions; momenta].
+
+    The flat representation is required because the fixed-point solver operates
+    on plain tensors rather than System objects.
+    """
     positions = system.positions
     momenta = system.get_data("momenta")[0].values
-    # flatten and concatenate
     return torch.cat([positions.view(-1), momenta.view(-1)], dim=0)
 
 
-def phase_space_to_system(system, x: torch.Tensor):
-    # extract positions and momenta from concatenated tensor and reshape into original shapes
+def phase_space_to_system(system: System, x: torch.Tensor) -> System:
+    """Reconstruct a System from a flat phase-space vector.
+
+    Inverse of system_to_phase_space. Types, cell, pbc, and masses are copied
+    from the template system; positions and momenta are taken from x. This thin
+    wrapper exists because the fixed-point solver works on plain tensors, but
+    the model inside the loop requires a System object.
+    """
     positions, momenta = torch.chunk(x, 2)
     positions = positions.view_as(system.positions)
-    momenta = momenta.view_as(system.get_data("momenta")[0].values)
-
-    # take the types, masses and cell from the original system
-    new_system = System(
-        types=system.types,
-        positions=positions,
-        cell=system.cell,
-        pbc=system.pbc,
-    )
-
-    # copy masses
-    new_system.add_data("masses", system.get_data("masses"))
-
-    # attach momenta
-    device = positions.device
-    new_system.add_data(
-        "momenta",
-        TensorMap(
-            keys=Labels.single().to(device),
-            blocks=[
-                TensorBlock(
-                    values=momenta,
-                    samples=Labels.range("atom", len(system)).to(device),
-                    components=[Labels.range("xyz", 3).to(device)],
-                    properties=Labels.single().to(device),
-                )
-            ],
-        ),
-    )
-
-    return new_system
+    momenta = momenta.view_as(system.positions)
+    return build_system(system, positions, momenta)
 
 
 class SymplecticStepper(AtomisticStepper):
