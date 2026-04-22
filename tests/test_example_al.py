@@ -5,12 +5,10 @@ import tempfile
 from pathlib import Path
 
 import yaml
+from metatrain.utils.architectures import find_all_architectures
 
 
 EXAMPLE_DIR = Path(__file__).parent.parent / "examples" / "al"
-
-from metatrain.utils.architectures import find_all_architectures
-
 SYMPLECTIC_AVAILABLE = "experimental.flashmd_symplectic" in find_all_architectures()
 
 _MINIMAL_MODEL_HYPERS = {
