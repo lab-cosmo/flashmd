@@ -24,14 +24,21 @@ class Bussi(VelocityVerlet):
         **kwargs,
     ):
         super().__init__(
-            atoms, timestep, stepper, device, dtype, rescale_energy, random_rotation, **kwargs
+            atoms,
+            timestep,
+            stepper,
+            device,
+            dtype,
+            rescale_energy,
+            random_rotation,
+            **kwargs,
         )
 
         self.temperature_K = temperature_K
         self.time_constant = time_constant
 
     @classmethod
-    def from_model(
+    def from_model(  # type: ignore[override]
         cls,
         atoms: ase.Atoms,
         timestep: float,
@@ -48,7 +55,18 @@ class Bussi(VelocityVerlet):
         device = torch.device(device)
         stepper = FlashMDStepper(model, device)
         dtype = stepper.dtype
-        return cls(atoms, timestep, temperature_K, stepper, device, dtype, time_constant, rescale_energy, random_rotation, **kwargs)
+        return cls(
+            atoms,
+            timestep,
+            temperature_K,
+            stepper,
+            device,
+            dtype,
+            time_constant,
+            rescale_energy,
+            random_rotation,
+            **kwargs,
+        )
 
     def step(self):
         self.apply_bussi_half_step()

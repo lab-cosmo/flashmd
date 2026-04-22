@@ -55,7 +55,16 @@ class VelocityVerlet(MolecularDynamics):
         device = torch.device(device)
         stepper = FlashMDStepper(model, device)
         dtype = stepper.dtype
-        return cls(atoms, timestep, stepper, device, dtype, rescale_energy, random_rotation, **kwargs)
+        return cls(
+            atoms,
+            timestep,
+            stepper,
+            device,
+            dtype,
+            rescale_energy,
+            random_rotation,
+            **kwargs,
+        )
 
     def step(self):
         if self.rescale_energy:
