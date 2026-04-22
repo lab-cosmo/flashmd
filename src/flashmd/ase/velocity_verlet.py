@@ -8,7 +8,7 @@ from metatomic.torch.ase_calculator import _ase_to_torch_data
 from scipy.spatial.transform import Rotation
 
 from ..steppers.flashmd import FlashMDStepper
-from ..utils import make_system
+from ..utils import system_from_parts
 
 
 class VelocityVerlet(MolecularDynamics):
@@ -133,7 +133,7 @@ def _convert_atoms_to_system(
     types, positions, cell, pbc = _ase_to_torch_data(atoms, dtype=dtype, device=device)
     momenta = torch.tensor(atoms.get_momenta(), dtype=dtype, device=device)
     masses = torch.tensor(atoms.get_masses(), dtype=dtype, device=device)
-    return make_system(types, positions, cell, pbc, momenta, masses)
+    return system_from_parts(types, positions, cell, pbc, momenta, masses)
 
 
 def _get_random_rotation():

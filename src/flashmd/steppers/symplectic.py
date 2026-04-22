@@ -7,7 +7,7 @@ from metatomic.torch import AtomisticModel, ModelEvaluationOptions, ModelOutput,
 from metatrain.utils.neighbor_lists import get_system_with_neighbor_lists
 
 from flashmd.steppers import AtomisticStepper
-from flashmd.steppers.utils import build_system
+from flashmd.utils import system_from_template
 
 
 def system_to_phase_space(system: System) -> torch.Tensor:
@@ -32,7 +32,7 @@ def phase_space_to_system(system: System, x: torch.Tensor) -> System:
     positions, momenta = torch.chunk(x, 2)
     positions = positions.view_as(system.positions)
     momenta = momenta.view_as(system.positions)
-    return build_system(system, positions, momenta)
+    return system_from_template(system, positions, momenta)
 
 
 class SymplecticStepper(AtomisticStepper):

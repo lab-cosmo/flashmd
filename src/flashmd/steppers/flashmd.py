@@ -4,8 +4,8 @@ import vesin.metatomic
 from metatomic.torch import AtomisticModel, ModelEvaluationOptions, ModelOutput, System
 
 from ..constraints import enforce_physical_constraints
+from ..utils import system_from_template
 from . import AtomisticStepper
-from .utils import build_system
 
 
 class FlashMDStepper(AtomisticStepper):
@@ -49,4 +49,4 @@ class FlashMDStepper(AtomisticStepper):
         new_q = model_outputs["positions"].block().values.squeeze(-1)
         new_p = model_outputs["momenta"].block().values.squeeze(-1)
 
-        return build_system(system, new_q, new_p)
+        return system_from_template(system, new_q, new_p)

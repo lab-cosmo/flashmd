@@ -3,7 +3,7 @@ from metatensor.torch import Labels, TensorBlock, TensorMap
 from metatomic.torch import System
 
 
-def make_system(
+def system_from_parts(
     types: torch.Tensor,
     positions: torch.Tensor,
     cell: torch.Tensor,
@@ -67,3 +67,26 @@ def make_system(
         ),
     )
     return system
+
+
+def system_from_template(
+    template: System,
+    positions: torch.Tensor,
+    momenta: torch.Tensor,
+) -> System:
+    """Build a new System from updated positions and momenta tensors.
+
+    Copies types, cell, pbc, and masses from the template system.
+
+    Args:
+        template: Source system for structural data (types, cell, pbc, masses).
+        positions: New atom positions, shape (N, 3).
+        momenta: New atom momenta, shape (N, 3).
+
+    Returns:
+        New System with updated positions and momenta.
+    """
+    masses = template.get_data("masses").block().values.squeeze(-1)
+    return system_from_parts(
+        template.types, positions, template.cell, template.pbc, momenta, masses
+    )

@@ -9,7 +9,7 @@ from ipi.utils.messages import info, verbosity
 from ipi.utils.units import Constants
 
 from flashmd.steppers.flashmd import FlashMDStepper
-from flashmd.utils import make_system
+from flashmd.utils import system_from_parts
 
 
 def get_standard_vv_step(
@@ -307,7 +307,7 @@ def ipi_to_system(motion, device, dtype):
         device=device,
         dtype=torch.int32,
     )
-    return make_system(types, positions, cell, pbc, momenta, masses)
+    return system_from_parts(types, positions, cell, pbc, momenta, masses)
 
 
 def system_to_ipi(motion, system):
