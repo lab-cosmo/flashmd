@@ -21,7 +21,7 @@ def test_isolated_atom(monkeypatch, tmp_path):
     calculator = EnergyCalculator(energy_model, device=device)
     atoms.calc = calculator
 
-    dyn = VelocityVerlet(
+    dyn = VelocityVerlet.from_model(
         atoms=atoms,
         timestep=time_step * ase.units.fs,
         model=flashmd_model,
@@ -46,7 +46,7 @@ def test_slab_plus_isolated_atom(monkeypatch, tmp_path):
     calculator = EnergyCalculator(energy_model, device=device)
     atoms.calc = calculator
 
-    dyn = VelocityVerlet(
+    dyn = VelocityVerlet.from_model(
         atoms=atoms,
         timestep=time_step * ase.units.fs,
         model=flashmd_model,

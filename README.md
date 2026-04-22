@@ -49,7 +49,7 @@ calculator = EnergyCalculator(energy_model, device=device)
 atoms.calc = calculator
 
 # Run MD
-dyn = Langevin(
+dyn = Langevin.from_model(
     atoms=atoms,
     timestep=time_step*ase.units.fs,
     temperature_K=300,

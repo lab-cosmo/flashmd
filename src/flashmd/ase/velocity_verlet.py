@@ -7,6 +7,7 @@ from metatomic.torch import AtomisticModel, System
 from metatomic.torch.ase_calculator import _ase_to_torch_data
 from scipy.spatial.transform import Rotation
 
+from ..steppers import AtomisticStepper
 from ..steppers.flashmd import FlashMDStepper
 from ..utils import system_from_parts
 
@@ -16,33 +17,45 @@ class VelocityVerlet(MolecularDynamics):
         self,
         atoms: ase.Atoms,
         timestep: float,
-        model: AtomisticModel,
-        device: str | torch.device = "auto",
+        stepper: AtomisticStepper,
+        device: torch.device,
+        dtype: torch.dtype,
         rescale_energy: bool = True,
         random_rotation: bool = False,
         **kwargs,
     ):
         super().__init__(atoms, timestep, **kwargs)
 
-        capabilities = model.capabilities()
-
-        model_timestep = float(model.module.timestep)
-        if not np.allclose(model_timestep, self.dt / ase.units.fs):
+        stepper_timestep = stepper.get_timestep() / ase.units.fs
+        if not np.allclose(stepper_timestep, self.dt / ase.units.fs):
             raise ValueError(
                 f"Mismatch between timestep ({self.dt / ase.units.fs} fs) "
-                f"and model timestep ({model_timestep} fs)."
+                f"and stepper timestep ({stepper_timestep} fs)."
             )
 
-        if device == "auto":
-            device = "cuda" if torch.cuda.is_available() else "cpu"
-        else:
-            device = device
-        self.device = torch.device(device)
-        self.dtype = getattr(torch, capabilities.dtype)
-
-        self.stepper = FlashMDStepper(model, self.device)
+        self.stepper = stepper
+        self.device = device
+        self.dtype = dtype
         self.rescale_energy = rescale_energy
         self.random_rotation = random_rotation
+
+    @classmethod
+    def from_model(
+        cls,
+        atoms: ase.Atoms,
+        timestep: float,
+        model: AtomisticModel,
+        device: str | torch.device = "auto",
+        rescale_energy: bool = True,
+        random_rotation: bool = False,
+        **kwargs,
+    ):
+        if device == "auto":
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+        device = torch.device(device)
+        stepper = FlashMDStepper(model, device)
+        dtype = stepper.dtype
+        return cls(atoms, timestep, stepper, device, dtype, rescale_energy, random_rotation, **kwargs)
 
     def step(self):
         if self.rescale_energy:
@@ -128,7 +141,7 @@ class VelocityVerlet(MolecularDynamics):
 
 
 def _convert_atoms_to_system(
-    atoms: ase.Atoms, dtype: str, device: str | torch.device
+    atoms: ase.Atoms, dtype: torch.dtype, device: torch.device
 ) -> System:
     types, positions, cell, pbc = _ase_to_torch_data(atoms, dtype=dtype, device=device)
     momenta = torch.tensor(atoms.get_momenta(), dtype=dtype, device=device)
