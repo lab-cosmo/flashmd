@@ -24,7 +24,7 @@ from metatomic.torch import load_atomistic_model
 from ipi.utils.scripting import InteractiveSimulation
 from flashmd.steppers import FlashMDStepper, SymplecticStepper
 from flashmd.fpi import anderson_solver
-from flashmd.vv import flashmd_vv
+from flashmd.ipi import get_vv_step_from_stepper
 from flashmd.wrappers.nve import wrap_nve
 
 # %%
@@ -123,7 +123,7 @@ with open("simulation-template.xml") as f:
 flashmd = load_atomistic_model("flashmd.pt").to(device)
 stepper = FlashMDStepper(flashmd, device=device)
 simulation = InteractiveSimulation(input_template.replace("PREFIX", "flashmd"))
-step_fn = flashmd_vv(simulation, stepper, device=device, dtype=torch.float32)
+step_fn = get_vv_step_from_stepper(simulation, stepper, device=device, dtype=torch.float32)
 step_fn = wrap_nve(simulation, step_fn)
 simulation.set_motion_step(step_fn)
 simulation.run(100)
@@ -133,7 +133,7 @@ simulation.run(100)
 symplectic_flashmd = load_atomistic_model("symplectic-flashmd.pt").to(device)
 symplectic_stepper = SymplecticStepper(stepper, symplectic_flashmd, anderson_solver)
 symplectic_simulation = InteractiveSimulation(input_template.replace("PREFIX", "symplectic-flashmd"))
-symplectic_step_fn = flashmd_vv(symplectic_simulation, symplectic_stepper, device=device, dtype=torch.float32)
+symplectic_step_fn = get_vv_step_from_stepper(symplectic_simulation, symplectic_stepper, device=device, dtype=torch.float32)
 symplectic_step_fn = wrap_nve(symplectic_simulation, symplectic_step_fn)
 symplectic_simulation.set_motion_step(symplectic_step_fn)
 symplectic_simulation.run(100)

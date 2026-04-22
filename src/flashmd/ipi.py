@@ -1,31 +1,38 @@
+"""i-PI integration helpers for FlashMD.
+
+VV step builders return a callable ``vv_step(motion)`` suitable for passing
+to the ensemble wrappers in ``flashmd.wrappers``:
+
+- ``get_vv_step_from_ipi``: uses i-PI's own force evaluations (no ML model).
+- ``get_vv_step_from_stepper``: drives a pre-built ``AtomisticStepper`` (e.g.
+  ``SymplecticStepper``).
+- ``get_vv_step_from_model``: convenience wrapper that builds a
+  ``FlashMDStepper`` from a model and delegates to ``get_vv_step_from_stepper``.
+
+Ensemble steppers — combine a VV step with thermostat/barostat logic and
+return a ready-to-use ``stepper(motion)`` for i-PI:
+
+- ``get_nve_stepper``
+- ``get_nvt_stepper``
+- ``get_npt_stepper``
+"""
+
 import ase.data
 import ase.units
 import numpy as np
 import torch
-from ipi.engine.motion.dynamics import NPTIntegrator, NVEIntegrator, NVTIntegrator
 from ipi.utils.depend import dstrip
 from ipi.utils.mathtools import random_rotation as random_rotation_matrix
 from ipi.utils.messages import info, verbosity
-from ipi.utils.units import Constants
 
+from flashmd.steppers import AtomisticStepper
 from flashmd.steppers.flashmd import FlashMDStepper
 from flashmd.utils import system_from_parts
+from flashmd.wrappers import wrap_npt, wrap_nve, wrap_nvt
 
 
-def get_standard_vv_step(
-    sim, model=None, device=None, rescale_energy=False, random_rotation=False
-):
-    """
-    Returns a velocity Verlet stepper function for i-PI simulations.
-
-    Parameters:
-    - sim: The i-PI simulation object.
-    - rescale_energy: If True, rescales the kinetic energy after the step
-        to maintain energy conservation.
-
-    Returns:
-    - A function that performs a velocity Verlet step.
-    """
+def get_vv_step_from_ipi(sim, rescale_energy=False, random_rotation=False):
+    """Velocity Verlet step using i-PI's own force evaluations."""
 
     def vv_step(motion):
         if random_rotation:
@@ -54,23 +61,25 @@ def get_standard_vv_step(
     return vv_step
 
 
-def get_flashmd_vv_step(
-    sim, model, device, rescale_energy=False, random_rotation=False
+def get_vv_step_from_stepper(
+    sim,
+    stepper: AtomisticStepper,
+    device: torch.device,
+    dtype: torch.dtype,
+    rescale_energy: bool = False,
+    random_rotation: bool = False,
 ):
-    capabilities = model.capabilities()
+    """Velocity Verlet step driven by a pre-built AtomisticStepper.
 
-    model_timestep = float(model.module.timestep)
-
+    Use this when you need to supply a custom stepper (e.g. SymplecticStepper).
+    For the plain FlashMD model case, prefer get_vv_step_from_model.
+    """
+    model_timestep = stepper.get_timestep()
     dt = sim.syslist[0].motion.dt * 2.4188843e-17 * ase.units.s / ase.units.fs
-
     if not np.allclose(dt, model_timestep):
         raise ValueError(
             f"Mismatch between timestep ({dt} fs) and model timestep ({model_timestep} fs)."
         )
-
-    device = torch.device(device)
-    dtype = getattr(torch, capabilities.dtype)
-    stepper = FlashMDStepper(model, device)
 
     def flashmd_vv(motion):
         info("@flashmd: Starting VV", verbosity.debug)
@@ -82,22 +91,19 @@ def get_flashmd_vv_step(
         system = ipi_to_system(motion, device, dtype)
 
         if random_rotation:
-            # generate a random rotation matrix
             R = torch.tensor(
                 random_rotation_matrix(motion.prng, improper=True),
                 device=system.positions.device,
                 dtype=system.positions.dtype,
             )
-            # applies the random rotation
             system.cell = system.cell @ R.T
             system.positions = system.positions @ R.T
             momenta = system.get_data("momenta").block(0).values.squeeze()
-            momenta[:] = momenta @ R.T  # does the change in place
+            momenta[:] = momenta @ R.T
 
         new_system = stepper.step(system)
 
         if random_rotation:
-            # revert q,p to the original reference frame (`system_to_ipi` ignores the cell)
             new_system.positions = new_system.positions @ R
             momenta = new_system.get_data("momenta").block(0).values.squeeze()
             momenta[:] = momenta @ R
@@ -113,11 +119,24 @@ def get_flashmd_vv_step(
             kinetic_energy = sim.properties("kinetic_md")
             alpha = np.sqrt(1.0 - (new_energy - old_energy) / kinetic_energy)
             motion.beads.p[:] = alpha * dstrip(motion.beads.p)
-            motion.integrator.pconstraints()  # just to be sure
+            motion.integrator.pconstraints()
 
         info("@flashmd: End of VV step", verbosity.debug)
 
     return flashmd_vv
+
+
+def get_vv_step_from_model(
+    sim, model, device, rescale_energy=False, random_rotation=False
+):
+    """Velocity Verlet step built from a FlashMD model."""
+    capabilities = model.capabilities()
+    device = torch.device(device)
+    dtype = getattr(torch, capabilities.dtype)
+    stepper = FlashMDStepper(model, device)
+    return get_vv_step_from_stepper(
+        sim, stepper, device, dtype, rescale_energy, random_rotation
+    )
 
 
 def get_nve_stepper(
@@ -128,28 +147,14 @@ def get_nve_stepper(
     random_rotation=False,
     use_standard_vv=False,
 ):
-    motion = sim.syslist[0].motion
-    if type(motion.integrator) is not NVEIntegrator:
-        raise TypeError(
-            f"Base i-PI integrator is of type {motion.integrator.__class__.__name__}, use a NVE setup."
-        )
-
+    """NVE stepper combining a VV step with time propagation."""
     if use_standard_vv:
-        # use the standard velocity Verlet integrator
-        vv_step = get_standard_vv_step(
-            sim, model, device, rescale_energy, random_rotation
-        )
+        vv_step = get_vv_step_from_ipi(sim, rescale_energy, random_rotation)
     else:
-        # defaults to the FlashMD VV stepper
-        vv_step = get_flashmd_vv_step(
+        vv_step = get_vv_step_from_model(
             sim, model, device, rescale_energy, random_rotation
         )
-
-    def nve_stepper(motion, *_, **__):
-        vv_step(motion)
-        motion.ensemble.time += motion.dt
-
-    return nve_stepper
+    return wrap_nve(sim, vv_step)
 
 
 def get_nvt_stepper(
@@ -160,64 +165,14 @@ def get_nvt_stepper(
     random_rotation=False,
     use_standard_vv=False,
 ):
-    motion = sim.syslist[0].motion
-    if type(motion.integrator) is not NVTIntegrator:
-        raise TypeError(
-            f"Base i-PI integrator is of type {motion.integrator.__class__.__name__}, use a NVT setup."
-        )
-
+    """NVT stepper using an OBABO thermostat splitting around the VV step."""
     if use_standard_vv:
-        # use the standard velocity Verlet integrator
-        vv_step = get_standard_vv_step(
-            sim, model, device, rescale_energy, random_rotation
-        )
+        vv_step = get_vv_step_from_ipi(sim, rescale_energy, random_rotation)
     else:
-        # defaults to the FlashMD VV stepper
-        vv_step = get_flashmd_vv_step(
+        vv_step = get_vv_step_from_model(
             sim, model, device, rescale_energy, random_rotation
         )
-
-    def nvt_stepper(motion, *_, **__):
-        # OBABO splitting of a NVT propagator
-        motion.thermostat.step()
-        motion.integrator.pconstraints()
-        vv_step(motion)
-        motion.thermostat.step()
-        motion.integrator.pconstraints()
-        motion.ensemble.time += motion.dt
-
-    return nvt_stepper
-
-
-def _qbaro(baro):
-    """Propagation step for the cell volume (adjusting atomic positions and momenta)."""
-
-    v = baro.p[0] / baro.m[0]
-    halfdt = (
-        baro.qdt
-    )  # this is set to half the inner loop in all integrators that use a barostat
-    expq, expp = (np.exp(v * halfdt), np.exp(-v * halfdt))
-
-    baro.nm.qnm[0, :] *= expq
-    baro.nm.pnm[0, :] *= expp
-    baro.cell.h *= expq
-
-
-def _pbaro(baro):
-    """Propagation step for the cell momentum (adjusting atomic positions and momenta)."""
-
-    # we are assuming then that p the coupling between p^2 and dp/dt only involves the fast force
-    dt = baro.pdt[0]
-
-    # computes the pressure associated with the forces at the outer level MTS level.
-    press = np.trace(baro.stress_mts(0)) / 3.0
-    # integerates the kinetic part of the pressure with the force at the inner-most level.
-    nbeads = baro.beads.nbeads
-    baro.p += (
-        3.0
-        * dt
-        * (baro.cell.V * (press - nbeads * baro.pext) + Constants.kb * baro.temp)
-    )
+    return wrap_nvt(sim, vv_step)
 
 
 def get_npt_stepper(
@@ -228,56 +183,18 @@ def get_npt_stepper(
     random_rotation=False,
     use_standard_vv=False,
 ):
-    motion = sim.syslist[0].motion
-    if type(motion.integrator) is not NPTIntegrator:
-        raise TypeError(
-            f"Base i-PI integrator is of type {motion.integrator.__class__.__name__}, use a NPT setup."
-        )
-
+    """NPT stepper with thermostat and barostat splitting around the VV step."""
     if use_standard_vv:
-        # use the standard velocity Verlet integrator
-        vv_step = get_standard_vv_step(
-            sim, model, device, rescale_energy, random_rotation
-        )
+        vv_step = get_vv_step_from_ipi(sim, rescale_energy, random_rotation)
     else:
-        # defaults to the FlashMD VV stepper
-        vv_step = get_flashmd_vv_step(
+        vv_step = get_vv_step_from_model(
             sim, model, device, rescale_energy, random_rotation
         )
-
-    # The barostat here needs a simpler splitting than for BZP, something as
-    # OAbBbBABbAbPO where Bp and Ap are the cell momentum and volume steps
-    def npt_stepper(motion, *_, **__):
-        info("@flashmd: Starting NPT step", verbosity.debug)
-        info("@flashmd: Particle thermo", verbosity.debug)
-        motion.thermostat.step()
-        info("@flashmd: P constraints", verbosity.debug)
-        motion.integrator.pconstraints()
-        info("@flashmd: Barostat thermo", verbosity.debug)
-        motion.barostat.thermostat.step()
-        info("@flashmd: Barostat q", verbosity.debug)
-        _qbaro(motion.barostat)
-        info("@flashmd: Barostat p", verbosity.debug)
-        _pbaro(motion.barostat)
-        info("@flashmd: FlashVV", verbosity.debug)
-        vv_step(motion)
-        info("@flashmd: Barostat p", verbosity.debug)
-        _pbaro(motion.barostat)
-        info("@flashmd: Barostat q", verbosity.debug)
-        _qbaro(motion.barostat)
-        info("@flashmd: Barostat thermo", verbosity.debug)
-        motion.barostat.thermostat.step()
-        info("@flashmd: Particle thermo", verbosity.debug)
-        motion.thermostat.step()
-        info("@flashmd: P constraints", verbosity.debug)
-        motion.integrator.pconstraints()
-        motion.ensemble.time += motion.dt
-        info("@flashmd: NPT Step finished", verbosity.debug)
-
-    return npt_stepper
+    return wrap_npt(sim, vv_step)
 
 
 def ipi_to_system(motion, device, dtype):
+    """Convert an i-PI motion object to a metatomic System."""
     positions = torch.tensor(
         dstrip(motion.beads.q).reshape(-1, 3) * ase.units.Bohr / ase.units.Angstrom,
         device=device,
