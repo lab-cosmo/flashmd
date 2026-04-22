@@ -1,6 +1,7 @@
 import torch
-from metatensor.torch import Labels, TensorBlock, TensorMap
 from metatomic.torch import System
+
+from ..utils import make_system
 
 
 def build_system(
@@ -20,38 +21,7 @@ def build_system(
     Returns:
         New System with updated positions and momenta.
     """
-    device = positions.device
-    n_atoms = len(template)
-
-    new_system = System(
-        types=template.types,
-        positions=positions,
-        cell=template.cell,
-        pbc=template.pbc,
+    masses = template.get_data("masses").block().values.squeeze(-1)
+    return make_system(
+        template.types, positions, template.cell, template.pbc, momenta, masses
     )
-    new_system.add_data("masses", template.get_data("masses"))
-    new_system.add_data(
-        "momenta",
-        TensorMap(
-            keys=Labels.single().to(device),
-            blocks=[
-                TensorBlock(
-                    values=momenta.unsqueeze(-1),
-                    samples=Labels(
-                        names=["system", "atom"],
-                        values=torch.tensor(
-                            [[0, j] for j in range(n_atoms)], device=device
-                        ),
-                    ),
-                    components=[
-                        Labels(
-                            names="xyz",
-                            values=torch.tensor([[0], [1], [2]], device=device),
-                        )
-                    ],
-                    properties=Labels.single().to(device),
-                )
-            ],
-        ),
-    )
-    return new_system

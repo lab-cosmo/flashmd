@@ -7,10 +7,9 @@ from ipi.utils.depend import dstrip
 from ipi.utils.mathtools import random_rotation as random_rotation_matrix
 from ipi.utils.messages import info, verbosity
 from ipi.utils.units import Constants
-from metatensor.torch import Labels, TensorBlock, TensorMap
-from metatomic.torch import System
 
 from flashmd.steppers.flashmd import FlashMDStepper
+from flashmd.utils import make_system
 
 
 def get_standard_vv_step(
@@ -279,80 +278,46 @@ def get_npt_stepper(
 
 
 def ipi_to_system(motion, device, dtype):
-    positions = (
-        dstrip(motion.beads.q).reshape(-1, 3) * ase.units.Bohr / ase.units.Angstrom
+    positions = torch.tensor(
+        dstrip(motion.beads.q).reshape(-1, 3) * ase.units.Bohr / ase.units.Angstrom,
+        device=device,
+        dtype=dtype,
     )
-    positions_torch = torch.tensor(positions, device=device, dtype=dtype)
-    cell = dstrip(motion.cell.h).T * ase.units.Bohr / ase.units.Angstrom
-    cell_torch = torch.tensor(cell, device=device, dtype=dtype)
-    pbc_torch = torch.tensor([True, True, True], device=device, dtype=torch.bool)
-    momenta = (
+    cell = torch.tensor(
+        dstrip(motion.cell.h).T * ase.units.Bohr / ase.units.Angstrom,
+        device=device,
+        dtype=dtype,
+    )
+    pbc = torch.tensor([True, True, True], device=device, dtype=torch.bool)
+    momenta = torch.tensor(
         dstrip(motion.beads.p).reshape(-1, 3)
         * (9.1093819e-31 * ase.units.kg)
         * (ase.units.Bohr / ase.units.Angstrom)
-        / (2.4188843e-17 * ase.units.s)
+        / (2.4188843e-17 * ase.units.s),
+        device=device,
+        dtype=dtype,
     )
-    momenta_torch = torch.tensor(momenta, device=device, dtype=dtype)
-    masses = dstrip(motion.beads.m) * 9.1093819e-31 * ase.units.kg
-    masses_torch = torch.tensor(masses, device=device, dtype=dtype)
-    types_torch = torch.tensor(
+    masses = torch.tensor(
+        dstrip(motion.beads.m) * 9.1093819e-31 * ase.units.kg,
+        device=device,
+        dtype=dtype,
+    )
+    types = torch.tensor(
         [ase.data.atomic_numbers[name] for name in motion.beads.names],
         device=device,
         dtype=torch.int32,
     )
-    system = System(types_torch, positions_torch, cell_torch, pbc_torch)
-    system.add_data(
-        "momenta",
-        TensorMap(
-            keys=Labels.single().to(device),
-            blocks=[
-                TensorBlock(
-                    values=momenta_torch.unsqueeze(-1),
-                    samples=Labels(
-                        names=["system", "atom"],
-                        values=torch.tensor(
-                            [[0, j] for j in range(len(momenta_torch))], device=device
-                        ),
-                    ),
-                    components=[
-                        Labels(
-                            names="xyz",
-                            values=torch.tensor([[0], [1], [2]], device=device),
-                        )
-                    ],
-                    properties=Labels.single().to(device),
-                )
-            ],
-        ),
-    )
-    system.add_data(
-        "masses",
-        TensorMap(
-            keys=Labels.single().to(device),
-            blocks=[
-                TensorBlock(
-                    values=masses_torch.unsqueeze(-1),
-                    samples=Labels(
-                        names=["system", "atom"],
-                        values=torch.tensor(
-                            [[0, j] for j in range(len(masses_torch))], device=device
-                        ),
-                    ),
-                    components=[],
-                    properties=Labels.single().to(device),
-                )
-            ],
-        ),
-    )
-    return system
+    return make_system(types, positions, cell, pbc, momenta, masses)
 
 
 def system_to_ipi(motion, system):
     # only needs to convert positions and momenta, it's assumed that the cell won't be changed
     motion.beads.q[:] = (
-        system.positions.cpu().numpy().flatten() * ase.units.Angstrom / ase.units.Bohr
+        system.positions.detach().cpu().numpy().flatten()
+        * ase.units.Angstrom
+        / ase.units.Bohr
     )
-    motion.beads.p[:] = system.get_data("momenta").block().values.squeeze(
+    motion.beads.p[:] = system.get_data("momenta").block().values.detach().squeeze(
         -1
     ).cpu().numpy().flatten() / (
         (9.1093819e-31 * ase.units.kg)

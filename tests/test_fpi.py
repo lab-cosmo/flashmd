@@ -18,5 +18,5 @@ def test_anderson_solver_convergence():
     assert torch.allclose(x_sol, x_exact, atol=1e-5)
     assert all(
         earlier >= later
-        for earlier, later in zip(residuals, residuals[1:], strict=True)
+        for earlier, later in zip(residuals[:-1], residuals[1:], strict=True)
     )

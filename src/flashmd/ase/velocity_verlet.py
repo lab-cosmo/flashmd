@@ -3,12 +3,12 @@ import ase.units
 import numpy as np
 import torch
 from ase.md.md import MolecularDynamics
-from metatensor.torch import Labels, TensorBlock, TensorMap
 from metatomic.torch import AtomisticModel, System
 from metatomic.torch.ase_calculator import _ase_to_torch_data
 from scipy.spatial.transform import Rotation
 
 from ..steppers.flashmd import FlashMDStepper
+from ..utils import make_system
 
 
 class VelocityVerlet(MolecularDynamics):
@@ -130,56 +130,10 @@ class VelocityVerlet(MolecularDynamics):
 def _convert_atoms_to_system(
     atoms: ase.Atoms, dtype: str, device: str | torch.device
 ) -> System:
-    system_data = _ase_to_torch_data(atoms, dtype=dtype, device=device)
-    system = System(*system_data)
-    system.add_data(
-        "momenta",
-        TensorMap(
-            keys=Labels.single().to(device),
-            blocks=[
-                TensorBlock(
-                    values=torch.tensor(
-                        atoms.get_momenta(), dtype=dtype, device=device
-                    ).unsqueeze(-1),
-                    samples=Labels(
-                        names=["system", "atom"],
-                        values=torch.tensor(
-                            [[0, j] for j in range(len(atoms))], device=device
-                        ),
-                    ),
-                    components=[
-                        Labels(
-                            names="xyz",
-                            values=torch.tensor([[0], [1], [2]], device=device),
-                        )
-                    ],
-                    properties=Labels.single().to(device),
-                )
-            ],
-        ),
-    )
-    system.add_data(
-        "masses",
-        TensorMap(
-            keys=Labels.single().to(device),
-            blocks=[
-                TensorBlock(
-                    values=torch.tensor(
-                        atoms.get_masses(), dtype=dtype, device=device
-                    ).unsqueeze(-1),
-                    samples=Labels(
-                        names=["system", "atom"],
-                        values=torch.tensor(
-                            [[0, j] for j in range(len(atoms))], device=device
-                        ),
-                    ),
-                    components=[],
-                    properties=Labels.single().to(device),
-                )
-            ],
-        ),
-    )
-    return system
+    types, positions, cell, pbc = _ase_to_torch_data(atoms, dtype=dtype, device=device)
+    momenta = torch.tensor(atoms.get_momenta(), dtype=dtype, device=device)
+    masses = torch.tensor(atoms.get_masses(), dtype=dtype, device=device)
+    return make_system(types, positions, cell, pbc, momenta, masses)
 
 
 def _get_random_rotation():
