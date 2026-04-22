@@ -9,7 +9,7 @@ description = "Accelerated molecular dynamics with large-time-step predictions"
 authors = [{name = "flashmd developers"}]
 
 dependencies = [
-    "metatrain==2026.2",
+    "metatrain>=2026.2.dev0",
     "metatomic-ase",
     "ase",
     "huggingface_hub",
@@ -80,6 +80,7 @@ filterwarnings = [
     "ignore:custom data:UserWarning",
     "ignore:`torch.jit.script` is deprecated:DeprecationWarning",
     "ignore:`torch.jit.load` is deprecated:DeprecationWarning",
+    "ignore:`torch.jit.script_method` is deprecated:DeprecationWarning",
     "ignore:`compute_requested_neighbors` is deprecated and will be removed in a future version:UserWarning",
     "ignore:`compute_requested_neighbors_from_options` is deprecated and will be removed in a future version:UserWarning"
 ]
