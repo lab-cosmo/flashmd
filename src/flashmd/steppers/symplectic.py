@@ -71,8 +71,7 @@ class SymplecticStepper(AtomisticStepper):
         self.fixed_point_solver = fixed_point_solver
 
     def get_timestep(self) -> float:
-        timestep: float = self.midpoint_to_delta_model.module.timestep.item()  # type: ignore
-        return timestep * ase.units.fs
+        return float(self.model.module.timestep) * ase.units.fs
 
     def _fixed_point_step(
         self, system, x_init: torch.Tensor, x_bar: torch.Tensor
