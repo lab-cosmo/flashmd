@@ -39,14 +39,25 @@ class SymplecticStepper(AtomisticStepper):
     def __init__(
         self,
         initial_guess: AtomisticStepper,
-        midpoint_to_delta_model: AtomisticModel,
+        model: AtomisticModel,
         fixed_point_solver: Callable[
             [Callable[[torch.Tensor], torch.Tensor], torch.Tensor], torch.Tensor
         ],
     ):
-        # super().__init__(flashmd, device)
+        """
+        Args:
+            initial_guess: The stepper to generate the initial guess for the fixed-point
+                iterations.
+            model: The AtomisticModel that will be used inside the fixed-point
+                iterations to compute the updates. The model should take in a midpoint
+                system and output the corresponding deltas.
+            fixed_point_solver: The function that will be used to solve for the fixed
+                point. It should take in a function that computes the update given the
+                current guess, and an initial guess for the midpoint, and return the
+                converged midpoint.
+        """
         self.initial_guess = initial_guess
-        self.midpoint_to_delta_model = midpoint_to_delta_model
+        self.model = model 
         self.fixed_point_solver = fixed_point_solver
 
         # self.model = model
@@ -90,11 +101,11 @@ class SymplecticStepper(AtomisticStepper):
 
         # attach neighbor lists based on the model's requests
         midpoint_system = get_system_with_neighbor_lists(
-            midpoint_system, self.midpoint_to_delta_model.requested_neighbor_lists()
+            midpoint_system, self.model.requested_neighbor_lists()
         )
 
         # run the model to get the deltas
-        outputs = self.midpoint_to_delta_model(
+        outputs = self.model(
             [midpoint_system], self.evaluation_options, check_consistency=False
         )
 
