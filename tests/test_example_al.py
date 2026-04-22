@@ -9,6 +9,10 @@ import yaml
 
 EXAMPLE_DIR = Path(__file__).parent.parent / "examples" / "al"
 
+from metatrain.utils.architectures import find_all_architectures
+
+SYMPLECTIC_AVAILABLE = "experimental.flashmd_symplectic" in find_all_architectures()
+
 _MINIMAL_MODEL_HYPERS = {
     "d_pet": 1,
     "d_head": 1,
@@ -44,6 +48,23 @@ def _modify_al_py(code: str) -> str:
     code = code.replace(
         "symplectic_simulation.run(100)", "symplectic_simulation.run(5)"
     )
+
+    if not SYMPLECTIC_AVAILABLE:
+        code = code.replace(
+            'subprocess.run(["mtt", "train", "options-symplectic-flashmd.yaml"], check=True)\n'
+            'shutil.move("model.pt", "symplectic-flashmd.pt")',
+            "pass",
+        )
+        code = code.replace(
+            'symplectic_flashmd = load_atomistic_model("symplectic-flashmd.pt").to(device)\n'
+            "symplectic_stepper = SymplecticStepper(stepper, symplectic_flashmd, anderson_solver)\n"
+            'symplectic_simulation = InteractiveSimulation(input_template.replace("PREFIX", "symplectic-flashmd"))\n'
+            "symplectic_step_fn = get_vv_step_from_stepper(symplectic_simulation, symplectic_stepper, device=device, dtype=torch.float32)\n"
+            "symplectic_step_fn = wrap_nve(symplectic_simulation, symplectic_step_fn)\n"
+            "symplectic_simulation.set_motion_step(symplectic_step_fn)\n"
+            "symplectic_simulation.run(5)",
+            "pass",
+        )
 
     return code
 
