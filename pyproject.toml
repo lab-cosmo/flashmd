@@ -50,6 +50,8 @@ dev = [
     "pytest",
     "ruff",
     "mypy",
+    "yaml",
+    "ipi",
 ]
 
 [tool.ruff]

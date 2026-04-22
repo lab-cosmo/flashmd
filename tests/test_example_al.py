@@ -41,7 +41,9 @@ def _modify_al_py(code: str) -> str:
 
     # Reduce i-PI simulation steps.
     code = code.replace("simulation.run(100)", "simulation.run(5)")
-    code = code.replace("symplectic_simulation.run(100)", "symplectic_simulation.run(5)")
+    code = code.replace(
+        "symplectic_simulation.run(100)", "symplectic_simulation.run(5)"
+    )
 
     return code
 
@@ -65,9 +67,7 @@ def _modify_simulation_xml(xml: str) -> str:
         "<parameters>{model:./pet-mad-s-v1.5.0.pt, template:./al.xyz, device:cuda}</parameters>",
         "<parameters>{}</parameters>",
     )
-    xml = xml.replace(
-        "<total_steps>100</total_steps>", "<total_steps>5</total_steps>"
-    )
+    xml = xml.replace("<total_steps>100</total_steps>", "<total_steps>5</total_steps>")
     return xml
 
 
