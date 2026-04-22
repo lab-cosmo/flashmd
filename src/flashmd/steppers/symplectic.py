@@ -57,7 +57,7 @@ class SymplecticStepper(AtomisticStepper):
                 converged midpoint.
         """
         self.initial_guess = initial_guess
-        self.model = model 
+        self.model = model
         self.fixed_point_solver = fixed_point_solver
 
         # self.model = model
