@@ -88,6 +88,7 @@ filterwarnings = [
     "ignore:`torch.jit.script` is not supported:DeprecationWarning",
     "ignore:`torch.jit.script_method` is not supported:DeprecationWarning",
     "ignore:`torch.jit.script_method` is deprecated:DeprecationWarning",
+    "ignore:`torch.jit.load` is not supported:DeprecationWarning",
     "ignore:The 'nvalchemiops.neighborlist' module has been renamed to 'nvalchemiops.neighbors':DeprecationWarning",
     "ignore:From version 0.3.0 onwards, PyTorch is now an optional dependency:DeprecationWarning",
 ]
