@@ -86,4 +86,5 @@ filterwarnings = [
     "ignore:hf_xet\\.download_files\\(\\) is deprecated:DeprecationWarning",
     "ignore:Due to '_pack_', the 'APICLaunchParamRecord' Structure will use memory layout compatible with MSVC:DeprecationWarning",
     "ignore:`torch.jit.script` is not supported:DeprecationWarning",
+    "ignore:`torch.jit.script_method` is not supported:DeprecationWarning",
 ]
