@@ -84,4 +84,5 @@ filterwarnings = [
     "ignore:`torch.jit.load` is deprecated:DeprecationWarning",
     "ignore:`compute_requested_neighbors_from_options` is deprecated and will be removed in a future version:UserWarning",
     "ignore:hf_xet\\.download_files\\(\\) is deprecated:DeprecationWarning",
+    "ignore:`torch.jit.script` is not supported in Python 3.14+ and may break:DeprecationWarning",
 ]
