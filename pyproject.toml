@@ -1,6 +1,6 @@
 [project]
 name = "flashmd"
-version = "0.2.8"
+version = "0.2.9"
 requires-python = ">=3.10"
 
 readme = "README.md"
@@ -12,6 +12,7 @@ dependencies = [
     "metatrain==2026.2",
     "metatomic-ase",
     "vesin>=0.5.4",
+    "nvalchemi-toolkit-ops==0.3.0",  # tricks metatomic-ase into avoiding buggy vesin
     "ase",
     "huggingface_hub",
 ]
