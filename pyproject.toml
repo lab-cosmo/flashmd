@@ -1,7 +1,7 @@
 [project]
 name = "flashmd"
-version = "0.2.8"
-requires-python = ">=3.10"
+version = "0.2.9"
+requires-python = ">=3.11"
 
 readme = "README.md"
 license = {text = "Apache-2.0"}
@@ -12,6 +12,7 @@ dependencies = [
     "metatrain==2026.2",
     "metatomic-ase",
     "vesin>=0.5.4",
+    "nvalchemi-toolkit-ops==0.3.0",  # tricks metatomic-ase into avoiding buggy vesin
     "ase",
     "huggingface_hub",
 ]
@@ -83,4 +84,11 @@ filterwarnings = [
     "ignore:`torch.jit.load` is deprecated:DeprecationWarning",
     "ignore:`compute_requested_neighbors_from_options` is deprecated and will be removed in a future version:UserWarning",
     "ignore:hf_xet\\.download_files\\(\\) is deprecated:DeprecationWarning",
+    "ignore:Due to '_pack_', the 'APICLaunchParamRecord' Structure will use memory layout compatible with MSVC:DeprecationWarning",
+    "ignore:`torch.jit.script` is not supported:DeprecationWarning",
+    "ignore:`torch.jit.script_method` is not supported:DeprecationWarning",
+    "ignore:`torch.jit.script_method` is deprecated:DeprecationWarning",
+    "ignore:`torch.jit.load` is not supported:DeprecationWarning",
+    "ignore:The 'nvalchemiops.neighborlist' module has been renamed to 'nvalchemiops.neighbors':DeprecationWarning",
+    "ignore:From version 0.3.0 onwards, PyTorch is now an optional dependency:DeprecationWarning",
 ]
