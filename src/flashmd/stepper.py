@@ -28,6 +28,15 @@ class FlashMDStepper:
 
         self.dtype = getattr(torch, self.model.capabilities().dtype)
         self.device = device
+        self.neighbor_list_calculators = vesin.metatomic.neighbor_lists_for_model(
+            "angstrom", self.model
+        )
+
+        # vesin's CUDA brute_force algorithm is broken for triclinic cells,
+        # so we use cell_list for all CUDA calculations to avoid potential issues. See
+        # https://github.com/Luthaf/vesin/issues/157
+        for neighbor_list in self.neighbor_list_calculators:
+            neighbor_list._nl.algorithm = "cell_list"
 
     def step(self, system: System):
         if system.device.type != self.device.type:
@@ -35,7 +44,8 @@ class FlashMDStepper:
         if system.positions.dtype != self.dtype:
             raise ValueError("System dtype does not match stepper dtype.")
 
-        vesin.metatomic.compute_requested_neighbors([system], "angstrom", self.model)
+        for calculator in self.neighbor_list_calculators:
+            calculator.add_neighbor_list(system)
 
         masses = system.get_data("masses").block().values
         model_outputs = self.model(
