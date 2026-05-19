@@ -25,20 +25,22 @@ _MINIMAL_MODEL_HYPERS = {
 def _modify_al_py(code: str) -> str:
     # Swap out the MLIP calculator for EMT (no GPU, no download required).
     code = code.replace(
-        "from upet.calculator import UPETCalculator",
+        "from upet.calculator import UPETCalculator\nfrom upet import save_upet",
         "from ase.calculators.emt import EMT",
     )
     code = code.replace(
-        'atoms.calc = UPETCalculator(model="pet-mad-s", version="1.5.0", device="cuda")',
+        'calc = UPETCalculator(model="pet-mad-xs", version="1.5.0", device="cpu")\n'
+        'save_upet(model="pet-mad", size="xs", version="1.5.0", output="mlip.pt")\n'
+        "atoms.calc = calc",
         "atoms.calc = EMT()",
     )
 
     # Reduce the number of MD steps so the test finishes quickly.
     code = code.replace(
-        "Langevin(atoms, 2 * units.fs, temperature_K=400, friction=gamma).run(1000)",
-        "Langevin(atoms, 2 * units.fs, temperature_K=400, friction=gamma).run(5)",
+        "Langevin(atoms, 2 * units.fs, temperature_K=400, friction=gamma, fixcm=False).run(100)",
+        "Langevin(atoms, 2 * units.fs, temperature_K=400, friction=gamma, fixcm=False).run(5)",
     )
-    code = code.replace("trange(1000)", "trange(30)")
+    code = code.replace("trange(100)", "trange(30)")
     code = code.replace("num_decorrelation_frames = 10", "num_decorrelation_frames = 2")
 
     # Reduce i-PI simulation steps.
@@ -54,9 +56,9 @@ def _modify_al_py(code: str) -> str:
             "pass",
         )
         code = code.replace(
-            'symplectic_flashmd = load_atomistic_model("symplectic-flashmd.pt").to(device)\n'
+            'symplectic_flashmd = load_atomistic_model("symplectic-flashmd.pt")\n'
             'symplectic_simulation = InteractiveSimulation(input_template.replace("PREFIX", "symplectic-flashmd"))\n'
-            "symplectic_step_fn = get_nve_stepper(symplectic_simulation, (flashmd, (symplectic_flashmd, {})), device)\n"
+            'symplectic_step_fn = get_nve_stepper(symplectic_simulation, (flashmd, (symplectic_flashmd, {})), "cpu", rescale_energy=False)\n'
             "symplectic_simulation.set_motion_step(symplectic_step_fn)\n"
             "symplectic_simulation.run(5)",
             "pass",
@@ -81,7 +83,7 @@ def _modify_simulation_xml(xml: str) -> str:
     # needed (FlashMD replaces the motion step entirely anyway).
     xml = xml.replace("<pes>metatomic</pes>", "<pes>dummy</pes>")
     xml = xml.replace(
-        "<parameters>{model:./pet-mad-s-v1.5.0.pt, template:./al.xyz, device:cuda}</parameters>",
+        "<parameters>{model: ./mlip.pt, template: ./al.xyz, device: cpu}</parameters>",
         "<parameters>{}</parameters>",
     )
     xml = xml.replace("<total_steps>100</total_steps>", "<total_steps>5</total_steps>")

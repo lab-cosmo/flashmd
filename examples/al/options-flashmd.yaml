@@ -6,7 +6,7 @@ architecture:
   training:
     timestep: 8 # in this case 4 (time lag) * 2 fs (timestep of reference MD)
     batch_size: 8  # to be increased in a production scenario
-    num_epochs: 100  # to be increased (at least 1000-10000) in a production scenario
+    num_epochs: 25  # to be increased (at least 1000-10000) in a production scenario
     log_interval: 1
     learning_rate: 3e-4
     loss:

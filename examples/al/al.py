@@ -5,12 +5,14 @@ First, we run a simple MD simulation for Al and log the trajectory. Then, we pro
 the trajectory into two datasets: one for training a FlashMD model and one for training
 a symplectic FlashMD model. Then, we train both models and run dynamics with them with
 i-PI.
+
+NOTE: This example is designed to run quickly on a CPU. For a real experiment, make sure
+to run longer simulations and train for more epochs.
 """
 
 # %%
 import shutil
 import subprocess
-import torch
 from ase import Atoms
 import ase.io
 from ase.build import bulk
@@ -19,14 +21,11 @@ from ase.md.verlet import VelocityVerlet
 from ase.md.langevin import Langevin
 from ase import units
 from upet.calculator import UPETCalculator
+from upet import save_upet
 from tqdm import trange
 from metatomic.torch import load_atomistic_model
 from ipi.scripting import InteractiveSimulation
 from flashmd.ipi import get_nve_stepper
-
-# %%
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-device
 
 # %%
 # Create a bulk Al system for demonstation.
@@ -36,7 +35,9 @@ len(atoms)
 
 # %%
 # Attach a UPET calculator
-atoms.calc = UPETCalculator(model="pet-mad-s", version="1.5.0", device="cuda")
+calc = UPETCalculator(model="pet-mad-xs", version="1.5.0", device="cpu")
+save_upet(model="pet-mad", size="xs", version="1.5.0", output="mlip.pt")
+atoms.calc = calc
 atoms.get_potential_energy()
 
 # %%
@@ -44,13 +45,13 @@ atoms.get_potential_energy()
 MaxwellBoltzmannDistribution(atoms, temperature_K=400)
 Stationary(atoms)
 gamma = 1 / (200 * units.fs)
-Langevin(atoms, 2 * units.fs, temperature_K=400, friction=gamma, fixcm=False).run(1000)
+Langevin(atoms, 2 * units.fs, temperature_K=400, friction=gamma, fixcm=False).run(100)
 
 # %%
 # Run NVE MD with ASE for an Al system.
 mlip_integrator = VelocityVerlet(atoms, 2 * units.fs)
 structures = []
-for _ in trange(1000):
+for _ in trange(100):
   mlip_integrator.run(1)
   structures.append(atoms.copy())
 
@@ -114,16 +115,16 @@ with open("simulation-template.xml") as f:
 
 # %%
 # Run NVE dynamics with i-PI and FlashMD
-flashmd = load_atomistic_model("flashmd.pt").to(device)
+flashmd = load_atomistic_model("flashmd.pt")
 simulation = InteractiveSimulation(input_template.replace("PREFIX", "flashmd"))
-step_fn = get_nve_stepper(simulation, flashmd, device)
+step_fn = get_nve_stepper(simulation, flashmd, "cpu", rescale_energy=False)
 simulation.set_motion_step(step_fn)
 simulation.run(100)
 
 # %%
 # Run NVE dynamics with i-PI and symplectic FlashMD
-symplectic_flashmd = load_atomistic_model("symplectic-flashmd.pt").to(device)
+symplectic_flashmd = load_atomistic_model("symplectic-flashmd.pt")
 symplectic_simulation = InteractiveSimulation(input_template.replace("PREFIX", "symplectic-flashmd"))
-symplectic_step_fn = get_nve_stepper(symplectic_simulation, (flashmd, (symplectic_flashmd, {})), device)
+symplectic_step_fn = get_nve_stepper(symplectic_simulation, (flashmd, (symplectic_flashmd, {})), "cpu", rescale_energy=False)
 symplectic_simulation.set_motion_step(symplectic_step_fn)
 symplectic_simulation.run(100)

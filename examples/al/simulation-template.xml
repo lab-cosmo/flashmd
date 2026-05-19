@@ -11,7 +11,7 @@
    <!-- Declare a "dummy" forcefield. We're not going to use it because the FlashMD flavors replace the `motion_step`. -->
    <ffdirect name='mlip'>
       <pes>metatomic</pes>
-      <parameters>{model:./pet-mad-s-v1.5.0.pt, template:./al.xyz, device:cuda}</parameters>
+      <parameters>{model: ./mlip.pt, template: ./al.xyz, device: cpu}</parameters>
     </ffdirect>
    <system>
       <!-- Use the dummy force field here. -->
