@@ -21,7 +21,7 @@ from ase import units
 from upet.calculator import UPETCalculator
 from tqdm import trange
 from metatomic.torch import load_atomistic_model
-from ipi.utils.scripting import InteractiveSimulation
+from ipi.scripting import InteractiveSimulation
 from flashmd.ipi import get_nve_stepper
 
 # %%
@@ -44,7 +44,7 @@ atoms.get_potential_energy()
 MaxwellBoltzmannDistribution(atoms, temperature_K=400)
 Stationary(atoms)
 gamma = 1 / (200 * units.fs)
-Langevin(atoms, 2 * units.fs, temperature_K=400, friction=gamma).run(1000)
+Langevin(atoms, 2 * units.fs, temperature_K=400, friction=gamma, fixcm=False).run(1000)
 
 # %%
 # Run NVE MD with ASE for an Al system.
