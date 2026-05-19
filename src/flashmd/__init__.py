@@ -2,6 +2,7 @@ import warnings
 
 import torch
 
+from .export import export_symplectic_model as export_symplectic_model
 from .models import get_pretrained as get_pretrained
 from .models import save_checkpoint as save_checkpoint
 
