@@ -9,6 +9,7 @@ from metatomic.torch.ase_calculator import _ase_to_torch_data
 from scipy.spatial.transform import Rotation
 
 from ..stepper import FlashMDStepper
+from ..symplectic_stepper import SymplecticStepper
 
 
 class VelocityVerlet(MolecularDynamics):
@@ -24,9 +25,14 @@ class VelocityVerlet(MolecularDynamics):
     ):
         super().__init__(atoms, timestep, **kwargs)
 
-        capabilities = model.capabilities()
+        if isinstance(model, tuple):
+            flashmd_model, (symplectic_model, symplectic_config) = model
+        else:
+            flashmd_model, symplectic_model, symplectic_config = model, None, None
 
-        model_timestep = float(model.module.timestep)
+        capabilities = flashmd_model.capabilities()
+
+        model_timestep = float(flashmd_model.module.timestep)
         if not np.allclose(model_timestep, self.dt / ase.units.fs):
             raise ValueError(
                 f"Mismatch between timestep ({self.dt / ase.units.fs} fs) "
@@ -40,7 +46,14 @@ class VelocityVerlet(MolecularDynamics):
         self.device = torch.device(device)
         self.dtype = getattr(torch, capabilities.dtype)
 
-        self.stepper = FlashMDStepper(model, self.device)
+        flashmd_stepper = FlashMDStepper(flashmd_model, self.device)
+        self.stepper: FlashMDStepper | SymplecticStepper
+        if symplectic_model is not None:
+            self.stepper = SymplecticStepper(
+                flashmd_stepper, symplectic_model, symplectic_config
+            )
+        else:
+            self.stepper = flashmd_stepper
         self.rescale_energy = rescale_energy
         self.random_rotation = random_rotation
 
