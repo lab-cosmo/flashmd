@@ -58,6 +58,9 @@ class SymplecticStepper:
         self.neighbor_list_calculators = vesin.metatomic.neighbor_lists_for_model(
             "angstrom", self.symplectic_model
         )
+        # vesin's CUDA brute_force algorithm is broken for triclinic cells
+        for nl in self.neighbor_list_calculators:
+            nl._nl.algorithm = "cell_list"
 
     def _midpoint_step(
         self, system: System, x_init: torch.Tensor, x_bar: torch.Tensor
