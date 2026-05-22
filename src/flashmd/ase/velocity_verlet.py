@@ -26,7 +26,11 @@ class VelocityVerlet(MolecularDynamics):
         super().__init__(atoms, timestep, **kwargs)
 
         if isinstance(model, tuple):
-            flashmd_model, (symplectic_model, symplectic_config) = model
+            flashmd_model, second = model
+            if isinstance(second, tuple):
+                symplectic_model, symplectic_config = second
+            else:
+                symplectic_model, symplectic_config = second, {}
         else:
             flashmd_model, symplectic_model, symplectic_config = model, None, None
 

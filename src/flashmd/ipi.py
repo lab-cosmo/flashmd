@@ -60,7 +60,11 @@ def get_flashmd_vv_step(
     sim, model, device, rescale_energy=False, random_rotation=False
 ):
     if isinstance(model, tuple):
-        flashmd_model, (symplectic_model, symplectic_config) = model
+        flashmd_model, second = model
+        if isinstance(second, tuple):
+            symplectic_model, symplectic_config = second
+        else:
+            symplectic_model, symplectic_config = second, {}
     else:
         flashmd_model, symplectic_model, symplectic_config = model, None, None
 
