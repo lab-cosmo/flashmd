@@ -5,7 +5,7 @@ import torch
 from ase.md.md import MolecularDynamics
 from metatensor.torch import Labels, TensorBlock, TensorMap
 from metatomic.torch import AtomisticModel, System
-from metatomic.torch.ase_calculator import _ase_to_torch_data
+from metatomic_ase._calculator import _ase_to_torch_data
 from scipy.spatial.transform import Rotation
 
 from ..stepper import FlashMDStepper
@@ -26,11 +26,7 @@ class VelocityVerlet(MolecularDynamics):
         super().__init__(atoms, timestep, **kwargs)
 
         if isinstance(model, tuple):
-            flashmd_model, second = model
-            if isinstance(second, tuple):
-                symplectic_model, symplectic_config = second
-            else:
-                symplectic_model, symplectic_config = second, {}
+            flashmd_model, (symplectic_model, symplectic_config) = model
         else:
             flashmd_model, symplectic_model, symplectic_config = model, None, None
 
