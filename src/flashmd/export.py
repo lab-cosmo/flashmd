@@ -37,6 +37,8 @@ class SymplecticModule(torch.nn.Module):
     beta: float
     lambda_reg: float
     timestep: torch.Tensor  # scalar tensor in fs; LAMMPS reads it via .toTensor()
+    verbose: bool
+    _printed_config: bool
 
     def __init__(
         self,
@@ -44,6 +46,7 @@ class SymplecticModule(torch.nn.Module):
         symplectic_model: AtomisticModel,
         config: Dict[str, float],
         symplectic_nl_options: List[NeighborListOptions],
+        verbose: bool = False,
     ):
         super().__init__()
         # Store inner modules directly - AtomisticModel wrappers can't be
@@ -58,8 +61,10 @@ class SymplecticModule(torch.nn.Module):
         self.tol = float(config.get("tol", 1e-5))
         self.max_iter = int(config.get("max_iter", 50))
         self.m = int(config.get("m", 5))
-        self.beta = float(config.get("beta", 1.0))
+        self.beta = float(config.get("beta", 0.9))
         self.lambda_reg = float(config.get("lambda_reg", 1e-4))
+        self.verbose = verbose
+        self._printed_config = False
         ts = flashmd_model.module.timestep
         self.register_buffer(
             "timestep",
@@ -187,6 +192,7 @@ class SymplecticModule(torch.nn.Module):
             x_prev = x_bar.clone()
             g_prev = g.clone()
 
+            n_iters: int = 0
             for k in range(self.max_iter):
                 if torch.norm(g) < self.tol:
                     break
@@ -207,6 +213,19 @@ class SymplecticModule(torch.nn.Module):
 
                 fx = self._midpoint_map(system, guess_out, x_init, x_bar, n)
                 g = fx - x_bar
+                n_iters = k + 1
+
+            if self.verbose:
+                if not self._printed_config:
+                    print(
+                        "SymplecticModule config: tol=", self.tol,
+                        "max_iter=", self.max_iter,
+                        "m=", self.m,
+                        "beta=", self.beta,
+                        "lambda_reg=", self.lambda_reg,
+                    )
+                    self._printed_config = True
+                print("FPI:", n_iters, "iters, |g| =", torch.norm(g).item())
 
             # Recover endpoint and reuse output metadata from inner model
             x_star = 2 * x_bar - x_init
@@ -237,6 +256,7 @@ def export_symplectic_model(
     symplectic_model: AtomisticModel,
     config: Optional[Dict[str, float]] = None,
     metadata: Optional[ModelMetadata] = None,
+    verbose: bool = False,
 ) -> AtomisticModel:
     """Wrap a FlashMD model and its symplectic correction into an exportable AtomisticModel.
 
@@ -248,6 +268,7 @@ def export_symplectic_model(
         symplectic_model: Symplectic correction AtomisticModel.
         config: Anderson solver hyper-parameters (tol, max_iter, m, beta, lambda_reg).
         metadata: Optional ModelMetadata for the exported model.
+        verbose: If True, print FPI iteration count and residual norm each step.
 
     Returns:
         An AtomisticModel ready for ``.save()``.
@@ -258,7 +279,7 @@ def export_symplectic_model(
         metadata = ModelMetadata()
 
     symplectic_nl_options = symplectic_model.requested_neighbor_lists()
-    module = SymplecticModule(flashmd_model, symplectic_model, config, symplectic_nl_options)
+    module = SymplecticModule(flashmd_model, symplectic_model, config, symplectic_nl_options, verbose)
     module.eval()
 
     base_caps = flashmd_model.capabilities()
