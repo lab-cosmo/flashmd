@@ -9,7 +9,8 @@ description = "Accelerated molecular dynamics with large-time-step predictions"
 authors = [{name = "flashmd developers"}]
 
 dependencies = [
-    "metatrain==2026.2",
+    # TODO: pin to a released version once experimental.flashmd_symplectic is on PyPI
+    "metatrain @ git+https://github.com/lab-cosmo/metatrain.git",
     "metatomic-ase",
     "vesin>=0.5.4",
     "nvalchemi-toolkit-ops==0.3.0",  # tricks metatomic-ase into avoiding buggy vesin
