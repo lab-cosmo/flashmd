@@ -42,7 +42,6 @@ def get_pretrained(
                 f"Symplectic FlashMD models based on the {mlip} MLIP are only available "
                 f"for time steps of {', '.join(map(str, AVAILABLE_SYMPLECTIC_TIME_STEPS[mlip]))} fs."
             )
-
     # Get checkpoints corresponding to the selected MLIP and FlashMD models
     mlip_path = hf_hub_download(
         repo_id="lab-cosmo/flashmd",
@@ -113,10 +112,21 @@ def get_pretrained(
     if time.time() - os.path.getmtime(symplectic_path) < 10:
         symplectic_reexport = True
     if symplectic_reexport:
-        subprocess.run(
+        result = subprocess.run(
             ["mtt", "export", symplectic_path, "-o", exported_symplectic_path],
             capture_output=True,
         )
+        if result.returncode != 0:
+            try:
+                import metatrain.experimental.flashmd_symplectic  # noqa: F401
+            except ImportError:
+                raise RuntimeError(
+                    "Using symplectic FlashMD models requires a version of metatrain "
+                    "that includes the experimental.flashmd_symplectic architecture. "
+                    "Please install it from the main branch:\n"
+                    "    pip install 'metatrain @ git+https://github.com/metatensor/metatrain.git'"
+                )
+            raise RuntimeError(result.stderr.decode())
 
     try:
         symplectic_model = load_atomistic_model(exported_symplectic_path)
@@ -127,8 +137,18 @@ def get_pretrained(
             ["mtt", "export", symplectic_path, "-o", exported_symplectic_path],
             capture_output=True,
         )
+        if result.returncode != 0:
+            try:
+                import metatrain.experimental.flashmd_symplectic  # noqa: F401
+            except ImportError:
+                raise RuntimeError(
+                    "Using symplectic FlashMD models requires a version of metatrain "
+                    "that includes the experimental.flashmd_symplectic architecture. "
+                    "Please install it from the main branch:\n"
+                    "    pip install 'metatrain @ git+https://github.com/metatensor/metatrain.git'"
+                )
+            raise RuntimeError(result.stderr.decode())
         print(f"{result.stdout=}")
-
         symplectic_model = load_atomistic_model(exported_symplectic_path)
 
     return mlip_model, flashmd_model, symplectic_model
