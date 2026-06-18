@@ -37,6 +37,22 @@ def test_symplectic_without_config(atoms, models):
     dyn.run(3)
 
 
+def test_symplectic_timestep_mismatch(atoms, models):
+    """Pairing models with mismatched timesteps raises an error."""
+    flashmd_model, _, device = models  # 2 fs FlashMD model
+    _, _, symplectic_model_16fs = get_pretrained(
+        "pet-omatpes", time_step=16, symplectic=True
+    )
+    with pytest.raises(ValueError, match="timestep"):
+        VelocityVerlet(
+            atoms=atoms,
+            timestep=2 * ase.units.fs,
+            model=(flashmd_model, symplectic_model_16fs),
+            device=device,
+            rescale_energy=False,
+        )
+
+
 def test_symplectic_with_config(atoms, models):
     """(flashmd_model, (symplectic_model, config)) runs with explicit config."""
     flashmd_model, symplectic_model, device = models
