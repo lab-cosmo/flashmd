@@ -86,12 +86,12 @@ class SymplecticModule(torch.nn.Module):
             pbc=template.pbc,
         )
         # Reuse sample/component/property Labels from the existing output blocks
-        mom_block = template_out["momenta"].block()
+        mom_block = template_out["momentum"].block()
         mass_block = template.get_data("masses").block()
         system.add_data(
-            "momenta",
+            "momentum",
             TensorMap(
-                keys=template_out["momenta"].keys,
+                keys=template_out["momentum"].keys,
                 blocks=[TensorBlock(
                     values=p_bar if p_bar.dim() == 3 else p_bar.unsqueeze(-1),
                     samples=mom_block.samples,
@@ -136,12 +136,12 @@ class SymplecticModule(torch.nn.Module):
 
         midpoint = self._make_midpoint_system(q_bar, p_bar, system, template_out)
         sym_outputs: Dict[str, ModelOutput] = {
-            "positions": ModelOutput(per_atom=True),
-            "momenta": ModelOutput(per_atom=True),
+            "position": ModelOutput(per_atom=True),
+            "momentum": ModelOutput(per_atom=True),
         }
         outputs = self.symplectic_module([midpoint], sym_outputs, None)
-        delta_q = outputs["positions"].block().values.squeeze(-1)
-        delta_p = outputs["momenta"].block().values
+        delta_q = outputs["position"].block().values.squeeze(-1)
+        delta_p = outputs["momentum"].block().values
 
         delta = torch.cat([delta_q.flatten(), delta_p.flatten()])
         return x_init + 0.5 * delta
@@ -153,8 +153,8 @@ class SymplecticModule(torch.nn.Module):
         selected_atoms: Optional[Labels],
     ) -> Dict[str, TensorMap]:
         flashmd_outputs: Dict[str, ModelOutput] = {
-            "positions": ModelOutput(per_atom=True),
-            "momenta": ModelOutput(per_atom=True),
+            "position": ModelOutput(per_atom=True),
+            "momentum": ModelOutput(per_atom=True),
         }
         # Run FlashMD for initial guess - also gives us the output metadata
         guess_out = self.flashmd_module(systems, flashmd_outputs, None)
@@ -169,13 +169,13 @@ class SymplecticModule(torch.nn.Module):
 
             # Extract initial guess for this system
             # (single-system case: block index 0; multi-system: use per-system blocks)
-            pos_block = guess_out["positions"].block()
-            mom_block = guess_out["momenta"].block()
+            pos_block = guess_out["position"].block()
+            mom_block = guess_out["momentum"].block()
             q_prime = pos_block.values.squeeze(-1)
             p_prime = mom_block.values.squeeze(-1)
 
             x_init = torch.cat(
-                [system.positions.flatten(), system.get_data("momenta").block().values.flatten()]
+                [system.positions.flatten(), system.get_data("momentum").block().values.flatten()]
             )
             x_bar = 0.5 * (x_init + torch.cat([q_prime.flatten(), p_prime.flatten()]))
 
@@ -246,8 +246,8 @@ class SymplecticModule(torch.nn.Module):
             ))
 
         return {
-            "positions": TensorMap(keys=guess_out["positions"].keys, blocks=result_pos_blocks),
-            "momenta": TensorMap(keys=guess_out["momenta"].keys, blocks=result_mom_blocks),
+            "positions": TensorMap(keys=guess_out["position"].keys, blocks=result_pos_blocks),
+            "momenta": TensorMap(keys=guess_out["momentum"].keys, blocks=result_mom_blocks),
         }
 
 
