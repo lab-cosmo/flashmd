@@ -117,15 +117,6 @@ def get_pretrained(
             capture_output=True,
         )
         if result.returncode != 0:
-            try:
-                import metatrain.experimental.flashmd_symplectic  # noqa: F401
-            except ImportError:
-                raise RuntimeError(
-                    "Using symplectic FlashMD models requires a version of metatrain "
-                    "that includes the experimental.flashmd_symplectic architecture. "
-                    "Please install it from the main branch:\n"
-                    "    pip install 'metatrain @ git+https://github.com/metatensor/metatrain.git'"
-                )
             raise RuntimeError(result.stderr.decode())
 
     try:
@@ -138,15 +129,6 @@ def get_pretrained(
             capture_output=True,
         )
         if result.returncode != 0:
-            try:
-                import metatrain.experimental.flashmd_symplectic  # noqa: F401
-            except ImportError:
-                raise RuntimeError(
-                    "Using symplectic FlashMD models requires a version of metatrain "
-                    "that includes the experimental.flashmd_symplectic architecture. "
-                    "Please install it from the main branch:\n"
-                    "    pip install 'metatrain @ git+https://github.com/metatensor/metatrain.git'"
-                )
             raise RuntimeError(result.stderr.decode())
         print(f"{result.stdout=}")
         symplectic_model = load_atomistic_model(exported_symplectic_path)

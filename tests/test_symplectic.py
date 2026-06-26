@@ -2,7 +2,7 @@ import ase.build
 import ase.units
 import pytest
 import torch
-from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
+from ase.md.velocitydistribution import thermalize_momenta
 
 from flashmd import get_pretrained
 from flashmd.ase.velocity_verlet import VelocityVerlet
@@ -20,7 +20,7 @@ def models():
 @pytest.fixture
 def atoms():
     atoms = ase.build.bulk("Al", "fcc", cubic=True)
-    MaxwellBoltzmannDistribution(atoms, temperature_K=300)
+    thermalize_momenta(atoms, temperature_K=300)
     return atoms
 
 
