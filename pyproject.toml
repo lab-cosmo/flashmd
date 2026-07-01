@@ -9,11 +9,11 @@ description = "Accelerated molecular dynamics with large-time-step predictions"
 authors = [{name = "flashmd developers"}]
 
 dependencies = [
-    "metatrain==2026.2",
+    "metatrain==2026.3.1",
     "metatomic-ase",
     "vesin>=0.5.4",
     "nvalchemi-toolkit-ops==0.3.0",  # tricks metatomic-ase into avoiding buggy vesin
-    "ase",
+    "ase>=3.29.0",  # thermalize_momenta replaces MaxwellBoltzmannDistribution
     "huggingface_hub",
 ]
 
@@ -84,11 +84,19 @@ filterwarnings = [
     "ignore:`torch.jit.load` is deprecated:DeprecationWarning",
     "ignore:`compute_requested_neighbors_from_options` is deprecated and will be removed in a future version:UserWarning",
     "ignore:hf_xet\\.download_files\\(\\) is deprecated:DeprecationWarning",
-    "ignore:Due to '_pack_', the 'APICLaunchParamRecord' Structure will use memory layout compatible with MSVC:DeprecationWarning",
+    "ignore:Due to '_pack_', the '.*' Structure will use memory layout compatible with MSVC:DeprecationWarning",
+    "ignore:warp.config.quiet is deprecated:DeprecationWarning",
     "ignore:`torch.jit.script` is not supported:DeprecationWarning",
     "ignore:`torch.jit.script_method` is not supported:DeprecationWarning",
     "ignore:`torch.jit.script_method` is deprecated:DeprecationWarning",
     "ignore:`torch.jit.load` is not supported:DeprecationWarning",
     "ignore:The 'nvalchemiops.neighborlist' module has been renamed to 'nvalchemiops.neighbors':DeprecationWarning",
     "ignore:From version 0.3.0 onwards, PyTorch is now an optional dependency:DeprecationWarning",
+    "ignore:`torch.jit.interface` is deprecated:DeprecationWarning",
+    "ignore:`torch.jit.set_fusion_strategy` is deprecated:DeprecationWarning",
+    "ignore:the '.*' output name is deprecated:UserWarning",
+    "ignore:the '.*' quantity is deprecated:UserWarning",
+    "ignore:the '.*' quantity is deprecated:DeprecationWarning",
+    "ignore:ModelOutput.quantity is deprecated:DeprecationWarning",
+    "ignore:Setting the shape on a NumPy array has been deprecated in NumPy 2.5:DeprecationWarning",
 ]

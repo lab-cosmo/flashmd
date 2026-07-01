@@ -11,6 +11,7 @@ from metatensor.torch import Labels, TensorBlock, TensorMap
 from metatomic.torch import System
 
 from flashmd.stepper import FlashMDStepper
+from flashmd.symplectic_stepper import SymplecticStepper
 
 
 def get_standard_vv_step(
@@ -58,9 +59,18 @@ def get_standard_vv_step(
 def get_flashmd_vv_step(
     sim, model, device, rescale_energy=False, random_rotation=False
 ):
-    capabilities = model.capabilities()
+    if isinstance(model, tuple):
+        flashmd_model, second = model
+        if isinstance(second, tuple):
+            symplectic_model, symplectic_config = second
+        else:
+            symplectic_model, symplectic_config = second, {}
+    else:
+        flashmd_model, symplectic_model, symplectic_config = model, None, None
 
-    model_timestep = float(model.module.timestep)
+    capabilities = flashmd_model.capabilities()
+
+    model_timestep = float(flashmd_model.module.timestep)
 
     dt = sim.syslist[0].motion.dt * 2.4188843e-17 * ase.units.s / ase.units.fs
 
@@ -71,7 +81,13 @@ def get_flashmd_vv_step(
 
     device = torch.device(device)
     dtype = getattr(torch, capabilities.dtype)
-    stepper = FlashMDStepper(model, device)
+    flashmd_stepper = FlashMDStepper(flashmd_model, device)
+    if symplectic_model is not None:
+        stepper = SymplecticStepper(
+            flashmd_stepper, symplectic_model, symplectic_config
+        )
+    else:
+        stepper = flashmd_stepper
 
     def flashmd_vv(motion):
         info("@flashmd: Starting VV", verbosity.debug)

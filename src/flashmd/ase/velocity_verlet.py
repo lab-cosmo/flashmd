@@ -5,10 +5,11 @@ import torch
 from ase.md.md import MolecularDynamics
 from metatensor.torch import Labels, TensorBlock, TensorMap
 from metatomic.torch import AtomisticModel, System
-from metatomic.torch.ase_calculator import _ase_to_torch_data
+from metatomic_ase._calculator import _ase_to_torch_data
 from scipy.spatial.transform import Rotation
 
 from ..stepper import FlashMDStepper
+from ..symplectic_stepper import SymplecticStepper
 
 
 class VelocityVerlet(MolecularDynamics):
@@ -24,9 +25,18 @@ class VelocityVerlet(MolecularDynamics):
     ):
         super().__init__(atoms, timestep, **kwargs)
 
-        capabilities = model.capabilities()
+        if isinstance(model, tuple):
+            flashmd_model, symplectic_part = model
+            if isinstance(symplectic_part, tuple):
+                symplectic_model, symplectic_config = symplectic_part
+            else:
+                symplectic_model, symplectic_config = symplectic_part, None
+        else:
+            flashmd_model, symplectic_model, symplectic_config = model, None, None
 
-        model_timestep = float(model.module.timestep)
+        capabilities = flashmd_model.capabilities()
+
+        model_timestep = float(flashmd_model.module.timestep)
         if not np.allclose(model_timestep, self.dt / ase.units.fs):
             raise ValueError(
                 f"Mismatch between timestep ({self.dt / ase.units.fs} fs) "
@@ -40,7 +50,14 @@ class VelocityVerlet(MolecularDynamics):
         self.device = torch.device(device)
         self.dtype = getattr(torch, capabilities.dtype)
 
-        self.stepper = FlashMDStepper(model, self.device)
+        flashmd_stepper = FlashMDStepper(flashmd_model, self.device)
+        self.stepper: FlashMDStepper | SymplecticStepper
+        if symplectic_model is not None:
+            self.stepper = SymplecticStepper(
+                flashmd_stepper, symplectic_model, symplectic_config
+            )
+        else:
+            self.stepper = flashmd_stepper
         self.rescale_energy = rescale_energy
         self.random_rotation = random_rotation
 

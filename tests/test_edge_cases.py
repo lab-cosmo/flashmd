@@ -1,7 +1,7 @@
 import ase.build
 import ase.units
 import torch
-from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
+from ase.md.velocitydistribution import thermalize_momenta
 
 from flashmd import get_pretrained
 from flashmd.ase import EnergyCalculator
@@ -13,7 +13,7 @@ def test_isolated_atom(monkeypatch, tmp_path):
     monkeypatch.chdir(tmp_path)
 
     atoms = ase.Atoms("O", positions=[[0, 0, 0]])
-    MaxwellBoltzmannDistribution(atoms, temperature_K=300)
+    thermalize_momenta(atoms, temperature_K=300)
 
     time_step = 8
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -38,7 +38,7 @@ def test_slab_plus_isolated_atom(monkeypatch, tmp_path):
     slab = ase.build.fcc111("Al", size=(2, 2, 3), vacuum=10)
     isolated_atom = ase.Atoms("O", positions=[[0, 0, 24]])
     atoms = slab + isolated_atom
-    MaxwellBoltzmannDistribution(atoms, temperature_K=300)
+    thermalize_momenta(atoms, temperature_K=300)
 
     time_step = 8
     device = "cuda" if torch.cuda.is_available() else "cpu"

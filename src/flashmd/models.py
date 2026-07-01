@@ -4,7 +4,7 @@ import subprocess
 import time
 
 from huggingface_hub import hf_hub_download
-from metatomic.torch import AtomisticModel, load_atomistic_model
+from metatomic.torch import load_atomistic_model
 
 
 AVAILABLE_MLIPS = ["pet-omatpes", "pet-omatpes-v2"]
@@ -12,9 +12,14 @@ AVAILABLE_TIME_STEPS = {
     "pet-omatpes": [1, 2, 4, 8, 16, 32, 64, 128],
     "pet-omatpes-v2": [1, 2, 4, 8, 16, 32, 64, 128],
 }
+AVAILABLE_SYMPLECTIC_TIME_STEPS = {
+    "pet-omatpes": [2, 16],
+}
 
 
-def get_pretrained(mlip: str = "pet-omatpes-v2", time_step: int = 16) -> AtomisticModel:
+def get_pretrained(
+    mlip: str = "pet-omatpes-v2", time_step: int = 16, symplectic: bool = False
+):
     if mlip not in AVAILABLE_MLIPS:
         raise ValueError(
             f"MLIP '{mlip}' is not available. "
@@ -27,6 +32,16 @@ def get_pretrained(mlip: str = "pet-omatpes-v2", time_step: int = 16) -> Atomist
             f"for time steps of {', '.join(map(str, AVAILABLE_TIME_STEPS[mlip]))} fs."
         )
 
+    if symplectic:
+        if mlip not in AVAILABLE_SYMPLECTIC_TIME_STEPS:
+            raise ValueError(
+                f"No symplectic FlashMD model is available for the {mlip} MLIP."
+            )
+        if time_step not in AVAILABLE_SYMPLECTIC_TIME_STEPS[mlip]:
+            raise ValueError(
+                f"Symplectic FlashMD models based on the {mlip} MLIP are only available "
+                f"for time steps of {', '.join(map(str, AVAILABLE_SYMPLECTIC_TIME_STEPS[mlip]))} fs."
+            )
     # Get checkpoints corresponding to the selected MLIP and FlashMD models
     mlip_path = hf_hub_download(
         repo_id="lab-cosmo/flashmd",
@@ -81,7 +96,44 @@ def get_pretrained(mlip: str = "pet-omatpes-v2", time_step: int = 16) -> Atomist
         mlip_model = load_atomistic_model(exported_mlip_path)
         flashmd_model = load_atomistic_model(exported_flashmd_path)
 
-    return mlip_model, flashmd_model
+    if not symplectic:
+        return mlip_model, flashmd_model
+
+    symplectic_path = hf_hub_download(
+        repo_id="lab-cosmo/flashmd",
+        filename=f"flashmd-symplectic_{mlip}_{time_step}fs.ckpt",
+        cache_dir=None,
+        revision="main",
+    )
+    exported_symplectic_path = symplectic_path.replace(".ckpt", ".pt")
+    symplectic_reexport = False
+    if not os.path.exists(exported_symplectic_path):
+        symplectic_reexport = True
+    if time.time() - os.path.getmtime(symplectic_path) < 10:
+        symplectic_reexport = True
+    if symplectic_reexport:
+        result = subprocess.run(
+            ["mtt", "export", symplectic_path, "-o", exported_symplectic_path],
+            capture_output=True,
+        )
+        if result.returncode != 0:
+            raise RuntimeError(result.stderr.decode())
+
+    try:
+        symplectic_model = load_atomistic_model(exported_symplectic_path)
+    except Exception:
+        print(f"{symplectic_path=}")
+        print(f"{exported_symplectic_path=}")
+        result = subprocess.run(
+            ["mtt", "export", symplectic_path, "-o", exported_symplectic_path],
+            capture_output=True,
+        )
+        if result.returncode != 0:
+            raise RuntimeError(result.stderr.decode())
+        print(f"{result.stdout=}")
+        symplectic_model = load_atomistic_model(exported_symplectic_path)
+
+    return mlip_model, flashmd_model, symplectic_model
 
 
 def save_checkpoint(mlip: str = "pet-omatpes-v2", time_step: int = 16):
