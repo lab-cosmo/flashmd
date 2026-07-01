@@ -9,12 +9,11 @@ description = "Accelerated molecular dynamics with large-time-step predictions"
 authors = [{name = "flashmd developers"}]
 
 dependencies = [
-    # TODO: pin to a released version once export_symplectic_model is available on PyPI
-    "metatrain @ git+https://github.com/lab-cosmo/metatrain.git",
+    "metatrain==2026.3.1",
     "metatomic-ase",
     "vesin>=0.5.4",
     "nvalchemi-toolkit-ops==0.3.0",  # tricks metatomic-ase into avoiding buggy vesin
-    "ase",
+    "ase>=3.29.0",  # thermalize_momenta replaces MaxwellBoltzmannDistribution
     "huggingface_hub",
 ]
 
@@ -99,4 +98,5 @@ filterwarnings = [
     "ignore:the '.*' quantity is deprecated:UserWarning",
     "ignore:the '.*' quantity is deprecated:DeprecationWarning",
     "ignore:ModelOutput.quantity is deprecated:DeprecationWarning",
+    "ignore:Setting the shape on a NumPy array has been deprecated in NumPy 2.5:DeprecationWarning",
 ]

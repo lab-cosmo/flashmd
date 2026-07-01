@@ -42,9 +42,7 @@ jobs:
 
     - name: run Python tests
       run: |
-        echo "metatrain @ git+https://github.com/metatensor/metatrain.git@870fae2a253ab33b20c52b958a16eac4640d840f" > /tmp/metatrain-override.txt
         tox -e tests
       env:
-        UV_OVERRIDE: /tmp/metatrain-override.txt
         # Use the CPU only version of torch when building/running the code
         PIP_EXTRA_INDEX_URL: https://download.pytorch.org/whl/cpu
