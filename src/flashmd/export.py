@@ -2,8 +2,6 @@ from typing import Dict, List, Optional
 
 import torch
 from metatensor.torch import Labels, TensorBlock, TensorMap
-
-from .fpi import _anderson_update
 from metatomic.torch import (
     AtomisticModel,
     ModelCapabilities,
@@ -12,6 +10,8 @@ from metatomic.torch import (
     NeighborListOptions,
     System,
 )
+
+from .fpi import _anderson_update
 
 
 class SymplecticModule(torch.nn.Module):
@@ -92,24 +92,28 @@ class SymplecticModule(torch.nn.Module):
             "momentum",
             TensorMap(
                 keys=template_out["momentum"].keys,
-                blocks=[TensorBlock(
-                    values=p_bar if p_bar.dim() == 3 else p_bar.unsqueeze(-1),
-                    samples=mom_block.samples,
-                    components=mom_block.components,
-                    properties=mom_block.properties,
-                )],
+                blocks=[
+                    TensorBlock(
+                        values=p_bar if p_bar.dim() == 3 else p_bar.unsqueeze(-1),
+                        samples=mom_block.samples,
+                        components=mom_block.components,
+                        properties=mom_block.properties,
+                    )
+                ],
             ),
         )
         system.add_data(
             "masses",
             TensorMap(
                 keys=template.get_data("masses").keys,
-                blocks=[TensorBlock(
-                    values=mass_block.values,
-                    samples=mass_block.samples,
-                    components=mass_block.components,
-                    properties=mass_block.properties,
-                )],
+                blocks=[
+                    TensorBlock(
+                        values=mass_block.values,
+                        samples=mass_block.samples,
+                        components=mass_block.components,
+                        properties=mass_block.properties,
+                    )
+                ],
             ),
         )
         for i in range(len(self._nl_cutoffs)):
@@ -175,7 +179,10 @@ class SymplecticModule(torch.nn.Module):
             p_prime = mom_block.values.squeeze(-1)
 
             x_init = torch.cat(
-                [system.positions.flatten(), system.get_data("momentum").block().values.flatten()]
+                [
+                    system.positions.flatten(),
+                    system.get_data("momentum").block().values.flatten(),
+                ]
             )
             x_bar = 0.5 * (x_init + torch.cat([q_prime.flatten(), p_prime.flatten()]))
 
@@ -218,11 +225,16 @@ class SymplecticModule(torch.nn.Module):
             if self.verbose:
                 if not self._printed_config:
                     print(
-                        "SymplecticModule config: tol=", self.tol,
-                        "max_iter=", self.max_iter,
-                        "m=", self.m,
-                        "beta=", self.beta,
-                        "lambda_reg=", self.lambda_reg,
+                        "SymplecticModule config: tol=",
+                        self.tol,
+                        "max_iter=",
+                        self.max_iter,
+                        "m=",
+                        self.m,
+                        "beta=",
+                        self.beta,
+                        "lambda_reg=",
+                        self.lambda_reg,
                     )
                     self._printed_config = True
                 print("FPI:", n_iters, "iters, |g| =", torch.norm(g).item())
@@ -232,22 +244,30 @@ class SymplecticModule(torch.nn.Module):
             q_star = x_star[: n * 3].view(n, 3)
             p_star = x_star[n * 3 :].view(n, 3, 1)
 
-            result_pos_blocks.append(TensorBlock(
-                values=q_star.unsqueeze(-1),
-                samples=pos_block.samples,
-                components=pos_block.components,
-                properties=pos_block.properties,
-            ))
-            result_mom_blocks.append(TensorBlock(
-                values=p_star,
-                samples=mom_block.samples,
-                components=mom_block.components,
-                properties=mom_block.properties,
-            ))
+            result_pos_blocks.append(
+                TensorBlock(
+                    values=q_star.unsqueeze(-1),
+                    samples=pos_block.samples,
+                    components=pos_block.components,
+                    properties=pos_block.properties,
+                )
+            )
+            result_mom_blocks.append(
+                TensorBlock(
+                    values=p_star,
+                    samples=mom_block.samples,
+                    components=mom_block.components,
+                    properties=mom_block.properties,
+                )
+            )
 
         return {
-            "positions": TensorMap(keys=guess_out["position"].keys, blocks=result_pos_blocks),
-            "momenta": TensorMap(keys=guess_out["momentum"].keys, blocks=result_mom_blocks),
+            "positions": TensorMap(
+                keys=guess_out["position"].keys, blocks=result_pos_blocks
+            ),
+            "momenta": TensorMap(
+                keys=guess_out["momentum"].keys, blocks=result_mom_blocks
+            ),
         }
 
 
@@ -279,7 +299,9 @@ def export_symplectic_model(
         metadata = ModelMetadata()
 
     symplectic_nl_options = symplectic_model.requested_neighbor_lists()
-    module = SymplecticModule(flashmd_model, symplectic_model, config, symplectic_nl_options, verbose)
+    module = SymplecticModule(
+        flashmd_model, symplectic_model, config, symplectic_nl_options, verbose
+    )
     module.eval()
 
     base_caps = flashmd_model.capabilities()
