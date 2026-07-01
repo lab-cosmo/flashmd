@@ -42,6 +42,15 @@ class SymplecticStepper:
         self.flashmd_stepper = flashmd_stepper
         self.device = flashmd_stepper.device
         self.symplectic_model = symplectic_model.to(self.device)
+
+        flashmd_timestep = float(flashmd_stepper.model.module.timestep)
+        symplectic_timestep = float(symplectic_model.module.timestep)
+        if symplectic_timestep != flashmd_timestep:
+            raise ValueError(
+                f"Mismatch between FlashMD model timestep ({flashmd_timestep} fs) "
+                f"and symplectic model timestep ({symplectic_timestep} fs)."
+            )
+
         self.tol = config.get("tol", 1e-5)
         self.max_iter = config.get("max_iter", 50)
         self.m = config.get("m", 5)

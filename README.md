@@ -23,7 +23,7 @@ After installation, you can run accelerated molecular dynamics as follows:
 import ase.build
 import ase.units
 import torch
-from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
+from ase.md.velocitydistribution import thermalize_momenta
 
 from flashmd import get_pretrained
 from flashmd.ase import EnergyCalculator
@@ -35,7 +35,7 @@ time_step = 64  # 64 fs; also available: 1, 2, 4, 8, 16, 32, 128 fs
 
 # Create a structure and initialize velocities
 atoms = ase.build.bulk("Al", "fcc", cubic=True)
-MaxwellBoltzmannDistribution(atoms, temperature_K=300)
+thermalize_momenta(atoms, temperature_K=300)
 atoms.set_velocities(  # it is generally a good idea to remove any net velocity
     atoms.get_velocities() - atoms.get_momenta().sum(axis=0) / atoms.get_masses().sum()
 )
