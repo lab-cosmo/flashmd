@@ -15,7 +15,7 @@ def test_isolated_atom(monkeypatch, tmp_path):
     atoms = ase.Atoms("O", positions=[[0, 0, 0]])
     thermalize_momenta(atoms, temperature_K=300)
 
-    time_step = 8
+    time_step = 64
     device = "cuda" if torch.cuda.is_available() else "cpu"
     energy_model, flashmd_model = get_pretrained("pet-omatpes-v2", time_step)
     calculator = EnergyCalculator(energy_model, device=device)
@@ -40,7 +40,7 @@ def test_slab_plus_isolated_atom(monkeypatch, tmp_path):
     atoms = slab + isolated_atom
     thermalize_momenta(atoms, temperature_K=300)
 
-    time_step = 8
+    time_step = 64
     device = "cuda" if torch.cuda.is_available() else "cpu"
     energy_model, flashmd_model = get_pretrained("pet-omatpes-v2", time_step)
     calculator = EnergyCalculator(energy_model, device=device)
