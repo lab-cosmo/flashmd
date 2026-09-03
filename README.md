@@ -163,3 +163,5 @@ Maintainers
 -----------
 
 This project is [maintained](https://github.com/lab-cosmo/.github/blob/main/Maintainers.md) by [@johannes-spies](https://github.com/johannes-spies) and [@zyxwwxyz](https://github.com/zyxwwxyz), who will reply to issues and pull requests opened on this repository as soon as possible. You can mention them directly if you haven't received an answer after a couple of days.
+
+It was previously maintained by @frostedoyster (2025 to 2026), many thanks to them for creating FlashMD!
