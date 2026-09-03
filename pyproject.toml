@@ -11,8 +11,7 @@ authors = [{name = "flashmd developers"}]
 dependencies = [
     "metatrain==2026.3.1",
     "metatomic-ase",
-    "vesin>=0.5.4",
-    "nvalchemi-toolkit-ops==0.3.0",  # tricks metatomic-ase into avoiding buggy vesin
+    "vesin>=0.5.8",
     "ase>=3.29.0",  # thermalize_momenta replaces MaxwellBoltzmannDistribution
     "huggingface_hub",
 ]
