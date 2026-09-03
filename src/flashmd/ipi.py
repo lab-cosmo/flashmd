@@ -2,8 +2,10 @@ import ase.data
 import ase.units
 import numpy as np
 import torch
+from ipi.engine.barostats import BaroBZP, BaroMTK
 from ipi.engine.motion.dynamics import NPTIntegrator, NVEIntegrator, NVTIntegrator
 from ipi.utils.depend import dstrip
+from ipi.utils.mathtools import matrix_exp
 from ipi.utils.mathtools import random_rotation as random_rotation_matrix
 from ipi.utils.messages import info, verbosity
 from ipi.utils.units import Constants
@@ -206,35 +208,56 @@ def get_nvt_stepper(
     return nvt_stepper
 
 
-def _qbaro(baro):
+def _qbaro(baro, mode):
     """Propagation step for the cell volume (adjusting atomic positions and momenta)."""
 
-    v = baro.p[0] / baro.m[0]
     halfdt = (
         baro.qdt
     )  # this is set to half the inner loop in all integrators that use a barostat
-    expq, expp = (np.exp(v * halfdt), np.exp(-v * halfdt))
 
-    baro.nm.qnm[0, :] *= expq
-    baro.nm.pnm[0, :] *= expp
-    baro.cell.h *= expq
+    if mode == "isotropic":
+        v = baro.p[0] / baro.m[0]
+        expq, expp = (np.exp(v * halfdt), np.exp(-v * halfdt))
+
+        baro.nm.qnm[0, :] *= expq
+        baro.nm.pnm[0, :] *= expp
+        baro.cell.h *= expq
+    else:
+        v = baro.p / baro.m[0]
+        expq, expp = (matrix_exp(v * halfdt), matrix_exp(-v * halfdt))
+
+        baro.nm.qnm[0] = (dstrip(baro.nm.qnm)[0].reshape(-1, 3) @ expq.T).reshape(-1)
+        baro.nm.pnm[0] = (dstrip(baro.nm.pnm)[0].reshape(-1, 3) @ expp.T).reshape(-1)
+        baro.cell.h = expq @ dstrip(baro.cell.h)
 
 
-def _pbaro(baro):
+def _pbaro(baro, mode):
     """Propagation step for the cell momentum (adjusting atomic positions and momenta)."""
 
     # we are assuming then that p the coupling between p^2 and dp/dt only involves the fast force
     dt = baro.pdt[0]
-
-    # computes the pressure associated with the forces at the outer level MTS level.
-    press = np.trace(baro.stress_mts(0)) / 3.0
-    # integerates the kinetic part of the pressure with the force at the inner-most level.
     nbeads = baro.beads.nbeads
-    baro.p += (
-        3.0
-        * dt
-        * (baro.cell.V * (press - nbeads * baro.pext) + Constants.kb * baro.temp)
-    )
+
+    if mode == "isotropic":
+        # computes the pressure associated with the forces at the outer level MTS level.
+        press = np.trace(baro.stress_mts(0)) / 3.0
+        # integerates the kinetic part of the pressure with the force at the inner-most level.
+        baro.p += (
+            3.0
+            * dt
+            * (baro.cell.V * (press - nbeads * baro.pext) + Constants.kb * baro.temp)
+        )
+    else:
+        stress = np.triu(dstrip(baro.stress_mts(0)) - nbeads * np.eye(3) * baro.pext)
+        baro.p += dt * (baro.cell.V * stress + Constants.kb * baro.temp * baro.L)
+
+        # zero out the fixed cell components, tracking the change in the conserved
+        # quantity through the barostat thermostat (as in i-PI's BaroMTK.pstep)
+        baro.thermostat.ethermo += baro.kin
+        baro.p *= baro.hmask
+        if baro.vol_constraint:
+            baro.p -= np.eye(3) * np.trace(baro.p) / 3.0
+        baro.thermostat.ethermo -= baro.kin
 
 
 def get_npt_stepper(
@@ -249,6 +272,16 @@ def get_npt_stepper(
     if type(motion.integrator) is not NPTIntegrator:
         raise TypeError(
             f"Base i-PI integrator is of type {motion.integrator.__class__.__name__}, use a NPT setup."
+        )
+
+    if type(motion.barostat) is BaroBZP:
+        baro_mode = "isotropic"
+    elif type(motion.barostat) is BaroMTK:
+        baro_mode = "flexible"
+    else:
+        raise TypeError(
+            f"Barostat is of type {motion.barostat.__class__.__name__}, use an "
+            "'isotropic' (BZP) or 'flexible' (MTK) barostat."
         )
 
     if use_standard_vv:
@@ -273,15 +306,15 @@ def get_npt_stepper(
         info("@flashmd: Barostat thermo", verbosity.debug)
         motion.barostat.thermostat.step()
         info("@flashmd: Barostat q", verbosity.debug)
-        _qbaro(motion.barostat)
+        _qbaro(motion.barostat, baro_mode)
         info("@flashmd: Barostat p", verbosity.debug)
-        _pbaro(motion.barostat)
+        _pbaro(motion.barostat, baro_mode)
         info("@flashmd: FlashVV", verbosity.debug)
         vv_step(motion)
         info("@flashmd: Barostat p", verbosity.debug)
-        _pbaro(motion.barostat)
+        _pbaro(motion.barostat, baro_mode)
         info("@flashmd: Barostat q", verbosity.debug)
-        _qbaro(motion.barostat)
+        _qbaro(motion.barostat, baro_mode)
         info("@flashmd: Barostat thermo", verbosity.debug)
         motion.barostat.thermostat.step()
         info("@flashmd: Particle thermo", verbosity.debug)
