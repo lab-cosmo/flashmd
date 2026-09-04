@@ -48,9 +48,8 @@ Monitoring the rescaling factor
 
 Every time ``rescale_energy=True`` triggers a rescale, the momenta are multiplied by a
 factor ``alpha = sqrt(1 - (E_new - E_old) / E_kin)``. If a step increases the total energy
-by more than the post-step kinetic energy can absorb, no real ``alpha`` exists to restore
-energy conservation; rather than silently producing ``NaN`` momenta, both the ASE and i-PI
-integrators raise a ``RuntimeError`` in that case. This is a sign that the step was
+by more than the post-step kinetic energy can absorb, both the ASE and i-PI
+integrators raise a ``RuntimeError``. This is a sign that the step was
 unphysical (e.g. atomic overlap or a model extrapolation error) -- consider using a
 smaller time step.
 
@@ -66,7 +65,7 @@ dyn.attach(lambda: print(dyn.alpha), interval=1)
 
 **i-PI**: the value is written each step to ``motion.flashmd_alpha`` (``nan`` on any step
 where rescaling did not run), which you can expose as a genuine column in the ``.out``
-file, next to volume, pressure, etc., by registering it as a custom property when you
+file, by registering it as a custom property when you
 build the ``InteractiveSimulation``:
 
 ```
