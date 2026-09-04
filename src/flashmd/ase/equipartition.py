@@ -13,14 +13,9 @@ class EquipartitionMonitor:
     :class:`~flashmd.ase.velocity_verlet.VelocityVerlet`) is enforced by rescaling
     *all* atomic momenta by a single global factor each step. This fixes the total
     energy, but says nothing about how kinetic energy is distributed across degrees
-    of freedom: if the model systematically mispredicts the dynamics of some subset
-    of atoms (e.g. a minority species, or a spatial region), that bias is preserved
-    rather than corrected, and can masquerade as a real physical effect (e.g. a
-    "hot" minority species faking a phase transition in a disordered system).
-
-    This monitor reports the instantaneous kinetic temperature of the whole system
-    and of one group per chemical species, plus any extra custom groups you
-    provide. Attach it to an ASE dynamics object like any other observer::
+    of freedom: this monitor reports the instantaneous kinetic temperature of the
+    whole system and of one group per chemical species, plus any extra custom
+    groups you provide. Attach it to an ASE dynamics object like any other observer::
 
         from flashmd.ase.equipartition import EquipartitionMonitor
 
