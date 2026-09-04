@@ -23,6 +23,8 @@ class EquipartitionMonitor:
         dyn.attach(monitor, interval=10)
 
     Note:
+        Instantaneous per-group temperatures can fluctuate wildly,
+        especially for small cells.
         The ``"system"`` entry and the per-species entries can use different
         degrees-of-freedom conventions. ``"system"`` follows
         ``ase.Atoms.get_temperature()``, which counts ``3N`` degrees of freedom
