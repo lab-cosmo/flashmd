@@ -1,3 +1,5 @@
+from types import ModuleType
+
 import ase
 import ase.units
 import numpy as np
@@ -202,7 +204,7 @@ def _convert_atoms_to_system(
     return system
 
 
-def _get_random_rotation(rng: np.random.Generator = np.random):
+def _get_random_rotation(rng: np.random.Generator | ModuleType = np.random):
     # Rotation.random(rng=...) requires an actual Generator; fall back to the
     # (global-state) bare call when using the plain np.random module default.
     if isinstance(rng, np.random.Generator):
