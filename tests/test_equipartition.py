@@ -2,7 +2,6 @@ import ase
 import ase.build
 import ase.units
 import numpy as np
-import pytest
 import torch
 from ase.md.velocitydistribution import thermalize_momenta
 
@@ -45,28 +44,6 @@ def test_reports_one_group_per_species_by_default():
     report = monitor()
     assert set(report) == {"system", "species:Na", "species:Cl"}
     assert monitor.history == [report]
-
-
-def test_custom_groups_are_added_alongside_species_groups():
-    atoms = _equilibrated_atoms()
-    dyn = _FakeDyn(atoms)
-    monitor = EquipartitionMonitor(dyn, groups={"first_half": range(len(atoms) // 2)})
-
-    assert set(monitor.groups) == {"species:Na", "species:Cl", "first_half"}
-    report = monitor()
-    assert set(report) == {"system", "species:Na", "species:Cl", "first_half"}
-
-
-def test_group_name_system_is_rejected():
-    dyn = _FakeDyn(_equilibrated_atoms())
-    with pytest.raises(ValueError, match="system"):
-        EquipartitionMonitor(dyn, groups={"system": [0]})
-
-
-def test_group_name_clashing_with_species_group_is_rejected():
-    dyn = _FakeDyn(_equilibrated_atoms())
-    with pytest.raises(ValueError, match="species:Na"):
-        EquipartitionMonitor(dyn, groups={"species:Na": [0]})
 
 
 def test_logfile_records_every_call(tmp_path):
@@ -137,7 +114,7 @@ def test_attaches_as_a_dynamics_observer(monkeypatch, tmp_path):
         model=flashmd_model,
         device=device,
     )
-    monitor = EquipartitionMonitor(dyn, groups={"all": range(len(atoms))})
+    monitor = EquipartitionMonitor(dyn)
     dyn.attach(monitor, interval=1)
     dyn.run(5)
 

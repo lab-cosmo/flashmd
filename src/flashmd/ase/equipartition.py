@@ -1,5 +1,4 @@
 import sys
-from collections.abc import Sequence
 
 import ase
 import ase.units
@@ -8,40 +7,49 @@ from ase.md.md import MolecularDynamics
 
 
 class EquipartitionMonitor:
-    """Track the kinetic temperature of groups of atoms during an MD run.
+    """Track the kinetic temperature of each chemical species during an MD run.
 
     FlashMD's exact energy conservation (``rescale_energy=True``, see
     :class:`~flashmd.ase.velocity_verlet.VelocityVerlet`) is enforced by rescaling
     *all* atomic momenta by a single global factor each step. This fixes the total
     energy, but says nothing about how kinetic energy is distributed across degrees
     of freedom: this monitor reports the instantaneous kinetic temperature of the
-    whole system and of one group per chemical species, plus any extra custom
-    groups you provide. Attach it to an ASE dynamics object like any other observer::
+    whole system alongside each chemical species. Attach it to an ASE dynamics
+    object like any other observer::
 
         from flashmd.ase.equipartition import EquipartitionMonitor
 
-        monitor = EquipartitionMonitor(dyn, groups={"cluster": [0, 1, 5]})
+        monitor = EquipartitionMonitor(dyn)
         dyn.attach(monitor, interval=10)
+
+    Note:
+        The ``"system"`` entry and the per-species entries use different
+        degrees-of-freedom conventions. Many MD codes (e.g. LAMMPS, i-PI)
+        subtract 3 degrees of freedom from the *global* temperature to account
+        for the conserved center-of-mass motion, but cannot meaningfully apply
+        that correction to an arbitrary subgroup, since a subgroup's own center
+        of mass isn't separately conserved. This monitor's ``"system"`` entry
+        follows ``ase.Atoms.get_temperature()`` (``3N`` degrees of freedom,
+        unless you have added a constraint that removes some), while every
+        per-species entry always uses the full ``3 * n_species`` degrees of
+        freedom. A small, systematic difference between ``"system"`` and the
+        per-species values (or against an external code's own diagnostic) can
+        come from this convention mismatch alone, not necessarily a real
+        equipartition violation.
 
     Args:
         dyn: the dynamics object propagating the atoms, e.g. a
             :class:`~flashmd.ase.velocity_verlet.VelocityVerlet` instance. The
             monitor reads ``dyn.atoms`` for the current momenta and ``dyn.nsteps``
             to label the ``logfile`` step column correctly.
-        groups: extra named groups of atom indices to report the temperature of,
-            on top of the automatic per-species groups (e.g. ``{"cluster": [0, 1,
-            5]}`` for a spatial region). Groups may overlap and need not cover all
-            atoms. A group name must not be ``"system"`` or clash with an
-            automatic per-species group name.
-        logfile: if given, the system and group temperatures are written to this
-            file (or to stdout if ``"-"``) every call, overwriting any existing
-            content.
+        logfile: if given, the system and per-species temperatures are written to
+            this file (or to stdout if ``"-"``) every call, overwriting any
+            existing content.
     """
 
     def __init__(
         self,
         dyn: MolecularDynamics,
-        groups: dict[str, Sequence[int]] | None = None,
         logfile: str | None = None,
     ):
         self.dyn = dyn
@@ -54,14 +62,6 @@ class EquipartitionMonitor:
             )
             for symbol in sorted(set(symbols))
         }
-        for name, indices in (groups or {}).items():
-            if name == "system" or name in self.groups:
-                raise ValueError(
-                    f"group name {name!r} is reserved or already in use "
-                    "(names must not be 'system' and must not repeat an "
-                    "automatic per-species group name)"
-                )
-            self.groups[name] = np.asarray(indices, dtype=int)
 
         self._logfile = None
         if logfile == "-":
