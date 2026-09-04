@@ -75,6 +75,12 @@ dynamics they are trained to reproduce. See this short [guide](docs/energy.md) o
 best use the energy models if you want to enforce exact energy conservation during
 FlashMD runs, run traditional MD with the energy model, and more.
 
+Enforcing exact energy conservation only fixes the *total* energy, and can leave
+some degrees of freedom systematically hotter or colder than others. If you are
+using the ASE interface, see [this guide](docs/equipartition.md) for a monitor
+that helps you catch such equipartition violations (i-PI users get the same
+diagnostic natively, for free — see the guide for details).
+
 Common pitfalls
 ---------------
 
