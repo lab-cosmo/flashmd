@@ -41,5 +41,4 @@ such constraints, since a constraint on the whole system's center of mass can't
 be meaningfully attributed to an arbitrary subgroup. With no constraints on
 ``atoms``, both conventions agree. If you impose one — for example to remove
 center-of-mass drift — a small, systematic difference between ``"system"`` and
-the per-species values will appear from this convention mismatch alone, not
-from a real equipartition violation.
+the per-species values will appear from this convention mismatch.
