@@ -91,6 +91,8 @@ filterwarnings = [
     "ignore:`torch.jit.load` is not supported:DeprecationWarning",
     "ignore:The 'nvalchemiops.neighborlist' module has been renamed to 'nvalchemiops.neighbors':DeprecationWarning",
     "ignore:From version 0.3.0 onwards, PyTorch is now an optional dependency:DeprecationWarning",
+    "ignore:currentThread\\(\\) is deprecated:DeprecationWarning",
+    "ignore::ResourceWarning",
     "ignore:`torch.jit.interface` is deprecated:DeprecationWarning",
     "ignore:`torch.jit.set_fusion_strategy` is deprecated:DeprecationWarning",
     "ignore:the '.*' output name is deprecated:UserWarning",
