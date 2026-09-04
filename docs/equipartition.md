@@ -32,14 +32,14 @@ monitor.close()
 
 Call ``monitor.close()`` once the run is done to close the log file.
 
-Note that the ``"system"`` entry and the per-species entries use different
-degrees-of-freedom conventions. Many MD codes (e.g. LAMMPS, i-PI) subtract 3
-degrees of freedom from the *global* temperature to account for the conserved
-center-of-mass motion, but cannot meaningfully apply that correction to an
-arbitrary subgroup, since a subgroup's own center of mass isn't separately
-conserved. Here, ``"system"`` follows ``ase.Atoms.get_temperature()`` (``3N``
-degrees of freedom, unless you have added a constraint that removes some),
-while every per-species entry always uses the full ``3 * n_species`` degrees of
-freedom. A small, systematic difference between ``"system"`` and the
-per-species values (or against an external code's own diagnostic) can come from
-this convention mismatch alone, not necessarily a real equipartition violation.
+Note that the ``"system"`` and per-species entries can use different
+degrees-of-freedom conventions. ``"system"`` follows
+``ase.Atoms.get_temperature()``, which counts ``3N`` degrees of freedom minus
+any removed by ``atoms.constraints`` (e.g. ``FixCom``), while every per-species
+entry always uses the full ``3 * n_species`` degrees of freedom regardless of
+such constraints, since a constraint on the whole system's center of mass can't
+be meaningfully attributed to an arbitrary subgroup. With no constraints on
+``atoms``, both conventions agree. If you impose one — for example to remove
+center-of-mass drift — a small, systematic difference between ``"system"`` and
+the per-species values will appear from this convention mismatch alone, not
+from a real equipartition violation.
