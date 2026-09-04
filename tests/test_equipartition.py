@@ -12,6 +12,15 @@ from flashmd.ase.equipartition import EquipartitionMonitor
 from flashmd.ase.velocity_verlet import VelocityVerlet
 
 
+class _FakeDyn:
+    """Minimal stand-in for an ASE dynamics object, exposing just the two
+    attributes EquipartitionMonitor relies on."""
+
+    def __init__(self, atoms):
+        self.atoms = atoms
+        self.nsteps = 0
+
+
 def _equilibrated_atoms(temperature_K=300.0, seed=0):
     """Build a heteroatomic system with all species at the same temperature.
 
@@ -29,8 +38,8 @@ def _equilibrated_atoms(temperature_K=300.0, seed=0):
 
 
 def test_reports_one_group_per_species_by_default():
-    atoms = _equilibrated_atoms()
-    monitor = EquipartitionMonitor(atoms)
+    dyn = _FakeDyn(_equilibrated_atoms())
+    monitor = EquipartitionMonitor(dyn)
 
     assert set(monitor.groups) == {"species:Na", "species:Cl"}
     report = monitor()
@@ -40,7 +49,8 @@ def test_reports_one_group_per_species_by_default():
 
 def test_custom_groups_are_added_alongside_species_groups():
     atoms = _equilibrated_atoms()
-    monitor = EquipartitionMonitor(atoms, groups={"first_half": range(len(atoms) // 2)})
+    dyn = _FakeDyn(atoms)
+    monitor = EquipartitionMonitor(dyn, groups={"first_half": range(len(atoms) // 2)})
 
     assert set(monitor.groups) == {"species:Na", "species:Cl", "first_half"}
     report = monitor()
@@ -48,21 +58,21 @@ def test_custom_groups_are_added_alongside_species_groups():
 
 
 def test_group_name_system_is_rejected():
-    atoms = _equilibrated_atoms()
+    dyn = _FakeDyn(_equilibrated_atoms())
     with pytest.raises(ValueError, match="system"):
-        EquipartitionMonitor(atoms, groups={"system": [0]})
+        EquipartitionMonitor(dyn, groups={"system": [0]})
 
 
 def test_group_name_clashing_with_species_group_is_rejected():
-    atoms = _equilibrated_atoms()
+    dyn = _FakeDyn(_equilibrated_atoms())
     with pytest.raises(ValueError, match="species:Na"):
-        EquipartitionMonitor(atoms, groups={"species:Na": [0]})
+        EquipartitionMonitor(dyn, groups={"species:Na": [0]})
 
 
 def test_logfile_records_every_call(tmp_path):
-    atoms = _equilibrated_atoms()
+    dyn = _FakeDyn(_equilibrated_atoms())
     logfile = tmp_path / "equipartition.log"
-    monitor = EquipartitionMonitor(atoms, logfile=str(logfile))
+    monitor = EquipartitionMonitor(dyn, logfile=str(logfile))
 
     monitor()
     monitor()
@@ -71,6 +81,40 @@ def test_logfile_records_every_call(tmp_path):
     lines = logfile.read_text().splitlines()
     assert lines[0].startswith("#")
     assert len(lines) == 3  # header + two recorded steps
+
+
+def test_logfile_step_column_matches_dynamics_step(tmp_path):
+    """The logged step must reflect the real dynamics step count, not just how
+    many times the monitor has been called (which would be wrong whenever the
+    monitor is attached with interval != 1)."""
+    dyn = _FakeDyn(_equilibrated_atoms())
+    logfile = tmp_path / "equipartition.log"
+    monitor = EquipartitionMonitor(dyn, logfile=str(logfile))
+
+    monitor()
+    dyn.nsteps = 10
+    monitor()
+    dyn.nsteps = 20
+    monitor()
+    monitor.close()
+
+    lines = logfile.read_text().splitlines()
+    steps = [int(line.split()[0]) for line in lines[1:]]
+    assert steps == [0, 10, 20]
+
+
+def test_logfile_overwrites_stale_content(tmp_path):
+    logfile = tmp_path / "equipartition.log"
+    logfile.write_text("stale content from a previous run\n")
+
+    dyn = _FakeDyn(_equilibrated_atoms())
+    monitor = EquipartitionMonitor(dyn, logfile=str(logfile))
+    monitor()
+    monitor.close()
+
+    lines = logfile.read_text().splitlines()
+    assert "stale content from a previous run" not in lines
+    assert lines[0].startswith("#")
 
 
 def test_attaches_as_a_dynamics_observer(monkeypatch, tmp_path):
@@ -93,7 +137,7 @@ def test_attaches_as_a_dynamics_observer(monkeypatch, tmp_path):
         model=flashmd_model,
         device=device,
     )
-    monitor = EquipartitionMonitor(atoms, groups={"all": range(len(atoms))})
+    monitor = EquipartitionMonitor(dyn, groups={"all": range(len(atoms))})
     dyn.attach(monitor, interval=1)
     dyn.run(5)
 

@@ -16,7 +16,7 @@ kinetic temperature of the whole system alongside each chemical species:
 ```py
 from flashmd.ase.equipartition import EquipartitionMonitor
 
-monitor = EquipartitionMonitor(atoms)
+monitor = EquipartitionMonitor(dyn)
 dyn.attach(monitor, interval=10)
 dyn.run(1000)
 ```
@@ -26,7 +26,7 @@ per-species groups, and log every temperature to a file:
 
 ```py
 monitor = EquipartitionMonitor(
-    atoms,
+    dyn,
     groups={"cluster": cluster_indices},
     logfile="equipartition.log",
 )

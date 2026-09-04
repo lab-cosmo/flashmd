@@ -4,6 +4,7 @@ from collections.abc import Sequence
 import ase
 import ase.units
 import numpy as np
+from ase.md.md import MolecularDynamics
 
 
 class EquipartitionMonitor:
@@ -19,32 +20,34 @@ class EquipartitionMonitor:
 
         from flashmd.ase.equipartition import EquipartitionMonitor
 
-        monitor = EquipartitionMonitor(atoms, groups={"cluster": [0, 1, 5]})
+        monitor = EquipartitionMonitor(dyn, groups={"cluster": [0, 1, 5]})
         dyn.attach(monitor, interval=10)
 
     Args:
-        atoms: the ``Atoms`` object being propagated. Groups and reported
-            temperatures always refer to this object's current momenta, so the
-            monitor should be attached to the same ``atoms`` the dynamics object
-            propagates.
+        dyn: the dynamics object propagating the atoms, e.g. a
+            :class:`~flashmd.ase.velocity_verlet.VelocityVerlet` instance. The
+            monitor reads ``dyn.atoms`` for the current momenta and ``dyn.nsteps``
+            to label the ``logfile`` step column correctly.
         groups: extra named groups of atom indices to report the temperature of,
             on top of the automatic per-species groups (e.g. ``{"cluster": [0, 1,
             5]}`` for a spatial region). Groups may overlap and need not cover all
             atoms. A group name must not be ``"system"`` or clash with an
             automatic per-species group name.
-        logfile: if given, the system and group temperatures are appended to this
-            file (or written to stdout if ``"-"``) every call.
+        logfile: if given, the system and group temperatures are written to this
+            file (or to stdout if ``"-"``) every call, overwriting any existing
+            content.
     """
 
     def __init__(
         self,
-        atoms: ase.Atoms,
+        dyn: MolecularDynamics,
         groups: dict[str, Sequence[int]] | None = None,
         logfile: str | None = None,
     ):
-        self.atoms = atoms
+        self.dyn = dyn
+        self.atoms = dyn.atoms
 
-        symbols = atoms.get_chemical_symbols()
+        symbols = self.atoms.get_chemical_symbols()
         self.groups: dict[str, np.ndarray] = {
             f"species:{symbol}": np.array(
                 [i for i, s in enumerate(symbols) if s == symbol], dtype=int
@@ -64,7 +67,7 @@ class EquipartitionMonitor:
         if logfile == "-":
             self._logfile = sys.stdout
         elif logfile is not None:
-            self._logfile = open(logfile, "a")
+            self._logfile = open(logfile, "w")
         self._header_written = False
 
         self.history: list[dict[str, float]] = []
@@ -90,7 +93,7 @@ class EquipartitionMonitor:
                 self._logfile.write("# step  " + "  ".join(report) + "\n")
                 self._header_written = True
             values = "  ".join(f"{report[name]:.2f}" for name in report)
-            self._logfile.write(f"{len(self.history)}  {values}\n")
+            self._logfile.write(f"{self.dyn.nsteps}  {values}\n")
             self._logfile.flush()
 
         return report
