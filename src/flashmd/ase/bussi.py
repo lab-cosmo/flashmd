@@ -18,10 +18,18 @@ class Bussi(VelocityVerlet):
         device: str | torch.device = "auto",
         rescale_energy: bool = False,
         random_rotation: bool = False,
+        rng: np.random.Generator | None = None,
         **kwargs,
     ):
         super().__init__(
-            atoms, timestep, model, device, rescale_energy, random_rotation, **kwargs
+            atoms,
+            timestep,
+            model,
+            device,
+            rescale_energy,
+            random_rotation,
+            rng,
+            **kwargs,
         )
 
         self.temperature_K = temperature_K
@@ -46,7 +54,7 @@ class Bussi(VelocityVerlet):
             / old_kinetic_energy
             / n_degrees_of_freedom
         )
-        r = np.random.randn(n_degrees_of_freedom)
+        r = self.rng.standard_normal(n_degrees_of_freedom)
         alpha_sq = (
             exp_term
             + energy_scaling_term * np.sum(r**2)

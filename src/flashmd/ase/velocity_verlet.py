@@ -21,9 +21,12 @@ class VelocityVerlet(MolecularDynamics):
         device: str | torch.device = "auto",
         rescale_energy: bool = True,
         random_rotation: bool = False,
+        rng: np.random.Generator | None = None,
         **kwargs,
     ):
         super().__init__(atoms, timestep, **kwargs)
+
+        self.rng = np.random if rng is None else rng
 
         if isinstance(model, tuple):
             flashmd_model, symplectic_part = model
@@ -72,7 +75,7 @@ class VelocityVerlet(MolecularDynamics):
         if self.random_rotation:
             # generate a random rotation matrix with SciPy
             R = torch.tensor(
-                _get_random_rotation(),
+                _get_random_rotation(self.rng),
                 device=system.positions.device,
                 dtype=system.positions.dtype,
             )
@@ -199,8 +202,8 @@ def _convert_atoms_to_system(
     return system
 
 
-def _get_random_rotation():
-    R = Rotation.random().as_matrix()
-    if np.random.rand() < 0.5:
+def _get_random_rotation(rng: np.random.Generator = np.random):
+    R = Rotation.random(random_state=rng).as_matrix()
+    if rng.random() < 0.5:
         R *= -1  # allow improper rotations
     return R
