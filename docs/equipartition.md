@@ -30,7 +30,11 @@ monitor = EquipartitionMonitor(
     groups={"cluster": cluster_indices},
     logfile="equipartition.log",
 )
+dyn.attach(monitor, interval=10)
+dyn.run(1000)
+monitor.close()
 ```
 
 Custom group names must not be ``"system"`` (reserved for the whole-system
-temperature) or repeat an automatic per-species group name.
+temperature) or repeat an automatic per-species group name. Call
+``monitor.close()`` once the run is done to close the log file.
