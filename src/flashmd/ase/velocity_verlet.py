@@ -203,7 +203,12 @@ def _convert_atoms_to_system(
 
 
 def _get_random_rotation(rng: np.random.Generator = np.random):
-    R = Rotation.random(random_state=rng).as_matrix()
+    # Rotation.random(rng=...) requires an actual Generator; fall back to the
+    # (global-state) bare call when using the plain np.random module default.
+    if isinstance(rng, np.random.Generator):
+        R = Rotation.random(rng=rng).as_matrix()
+    else:
+        R = Rotation.random().as_matrix()
     if rng.random() < 0.5:
         R *= -1  # allow improper rotations
     return R
