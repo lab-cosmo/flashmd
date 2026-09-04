@@ -15,9 +15,8 @@ from flashmd.ase.velocity_verlet import VelocityVerlet
 def _equilibrated_atoms(temperature_K=300.0, seed=0):
     """Build a heteroatomic system with all species at the same temperature.
 
-    Uses a large enough supercell that instantaneous per-species kinetic
-    temperatures are not dominated by statistical noise (few degrees of
-    freedom per group would fluctuate by tens of percent on their own).
+    Uses a large enough supercell so instantaneous per-species kinetic
+    temperatures are not dominated by statistical noise.
     """
     atoms = ase.build.bulk("NaCl", "rocksalt", a=5.64, cubic=True) * (3, 3, 3)
     rng = np.random.default_rng(seed)
