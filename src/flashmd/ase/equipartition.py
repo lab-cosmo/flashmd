@@ -33,8 +33,7 @@ class EquipartitionMonitor:
         arbitrary subgroup. If ``atoms`` has no constraints, both conventions
         agree. If you do impose one (e.g. to remove center-of-mass drift), a
         small, systematic difference between ``"system"`` and the per-species
-        values will appear from this convention mismatch alone, not from a real
-        equipartition violation.
+        values will appear from this convention mismatch.
 
     Args:
         dyn: the dynamics object propagating the atoms, e.g. a
