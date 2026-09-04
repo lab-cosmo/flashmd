@@ -13,7 +13,7 @@ from flashmd.ipi import get_npt_stepper
 # same models as the other tests, so nothing extra is downloaded
 TIME_STEP = 64
 
-# input file for i-PI to run a simulation in the isotheral-isobaric ensemble with 
+# input file for i-PI to run a simulation in the isotheral-isobaric ensemble with
 # flexible cell vectors. `run_npt` below replaces the {variables} with concrete values
 # for each run. `barostat_extra` is used to test different barostat options.
 INPUT = """<simulation verbosity='quiet' threading='false'>
