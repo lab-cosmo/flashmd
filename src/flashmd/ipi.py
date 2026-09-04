@@ -208,6 +208,23 @@ def get_nvt_stepper(
     return nvt_stepper
 
 
+def _project_baro(baro):
+    """Zero the cell momentum components held fixed by `hfix`/`vol_constraint`.
+
+    The removed kinetic energy is credited to the barostat thermostat's `ethermo`, as
+    in i-PI's `BaroMTK.pstep`, so that the conserved quantity stays correct.
+    """
+
+    if not baro.vol_constraint and np.all(baro.hmask == 1.0):
+        return
+
+    baro.thermostat.ethermo += baro.kin
+    baro.p *= baro.hmask
+    if baro.vol_constraint:
+        baro.p -= np.eye(3) * np.trace(baro.p) / 3.0
+    baro.thermostat.ethermo -= baro.kin
+
+
 def _qbaro(baro, mode):
     """Propagation step for the cell volume (adjusting atomic positions and momenta)."""
 
@@ -223,6 +240,10 @@ def _qbaro(baro, mode):
         baro.nm.pnm[0, :] *= expp
         baro.cell.h *= expq
     else:
+        # the barostat thermostat kicks all six components, so `p` cannot be assumed
+        # to be projected here
+        _project_baro(baro)
+
         v = baro.p / baro.m[0]
         expq, expp = (matrix_exp(v * halfdt), matrix_exp(-v * halfdt))
 
@@ -251,13 +272,7 @@ def _pbaro(baro, mode):
         stress = np.triu(dstrip(baro.stress_mts(0)) - nbeads * np.eye(3) * baro.pext)
         baro.p += dt * (baro.cell.V * stress + Constants.kb * baro.temp * baro.L)
 
-        # zero out the fixed cell components, tracking the change in the conserved
-        # quantity through the barostat thermostat (as in i-PI's BaroMTK.pstep)
-        baro.thermostat.ethermo += baro.kin
-        baro.p *= baro.hmask
-        if baro.vol_constraint:
-            baro.p -= np.eye(3) * np.trace(baro.p) / 3.0
-        baro.thermostat.ethermo -= baro.kin
+        _project_baro(baro)
 
 
 def get_npt_stepper(
