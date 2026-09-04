@@ -81,6 +81,7 @@ filterwarnings = [
     "ignore:custom data:UserWarning",
     "ignore:`torch.jit.script` is deprecated:DeprecationWarning",
     "ignore:`torch.jit.load` is deprecated:DeprecationWarning",
+    "ignore:`torch.jit.save` is deprecated:DeprecationWarning",
     "ignore:`compute_requested_neighbors_from_options` is deprecated and will be removed in a future version:UserWarning",
     "ignore:hf_xet\\.download_files\\(\\) is deprecated:DeprecationWarning",
     "ignore:Due to '_pack_', the '.*' Structure will use memory layout compatible with MSVC:DeprecationWarning",
@@ -98,4 +99,6 @@ filterwarnings = [
     "ignore:the '.*' quantity is deprecated:DeprecationWarning",
     "ignore:ModelOutput.quantity is deprecated:DeprecationWarning",
     "ignore:Setting the shape on a NumPy array has been deprecated in NumPy 2.5:DeprecationWarning",
+    "ignore:currentThread\\(\\) is deprecated:DeprecationWarning",
+    "ignore:unclosed file:ResourceWarning",  # i-PI's initializer leaks its handle
 ]
