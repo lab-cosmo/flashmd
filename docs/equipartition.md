@@ -5,12 +5,9 @@ FlashMD's exact energy conservation (``rescale_energy=True``, the default for
 ``VelocityVerlet`` when targeting NVE, see [this guide](energy.md)) corrects the
 *total* energy at every step by rescaling all atomic momenta by a single global
 factor. This is not the same as enforcing the equipartition theorem: if the model's
-per-step error is systematically biased towards some subset of degrees of freedom
-(for example a minority species, or a spatial region), the global rescaling
-preserves that bias instead of correcting it. Total energy will look perfectly
-conserved while some atoms run systematically hotter or colder than others, which
-can be mistaken for a real physical effect (e.g. a "hot" minority species
-triggering spurious nucleation in a disordered system).
+per-step error is systematically biased towards some subset of degrees of freedom,
+the global rescaling will lead to some atoms being systematically hotter or colder
+than others.
 
 ``flashmd.ase.equipartition.EquipartitionMonitor`` is a diagnostic you can attach to
 any ASE dynamics object to track this. By default it reports the instantaneous
@@ -37,8 +34,3 @@ monitor = EquipartitionMonitor(
 
 Custom group names must not be ``"system"`` (reserved for the whole-system
 temperature) or repeat an automatic per-species group name.
-
-Because the monitor reports *instantaneous* temperatures, small groups fluctuate a
-lot from statistics alone (a group with only a handful of atoms can easily swing by
-tens of percent even in a perfectly equilibrated system) — apply your own averaging
-to ``monitor.history`` after the run before drawing conclusions.
