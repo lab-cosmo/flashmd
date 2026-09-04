@@ -137,6 +137,20 @@ def get_flashmd_vv_step(
     return flashmd_vv
 
 
+def _check_no_multiple_timestepping(motion):
+    """FlashMD replaces the whole velocity Verlet step (or, in the "standard VV"
+    fallback, only ever calls the level-0 forces) and therefore cannot reproduce
+    i-PI's multiple time-stepping (RESPA) splitting across ``nmts`` levels."""
+    if len(motion.nmts) > 1:
+        raise ValueError(
+            "FlashMD does not support multiple time-stepping (RESPA) in i-PI: "
+            f"the <motion> block defines {len(motion.nmts)} MTS levels (nmts="
+            f"{list(motion.nmts)}), but FlashMD can only integrate a single "
+            "timescale. Use a single force level (nmts of length 1, or omit "
+            "nmts entirely)."
+        )
+
+
 def get_nve_stepper(
     sim,
     model,
@@ -150,6 +164,7 @@ def get_nve_stepper(
         raise TypeError(
             f"Base i-PI integrator is of type {motion.integrator.__class__.__name__}, use a NVE setup."
         )
+    _check_no_multiple_timestepping(motion)
 
     if use_standard_vv:
         # use the standard velocity Verlet integrator
@@ -182,6 +197,7 @@ def get_nvt_stepper(
         raise TypeError(
             f"Base i-PI integrator is of type {motion.integrator.__class__.__name__}, use a NVT setup."
         )
+    _check_no_multiple_timestepping(motion)
 
     if use_standard_vv:
         # use the standard velocity Verlet integrator
@@ -250,6 +266,7 @@ def get_npt_stepper(
         raise TypeError(
             f"Base i-PI integrator is of type {motion.integrator.__class__.__name__}, use a NPT setup."
         )
+    _check_no_multiple_timestepping(motion)
 
     if use_standard_vv:
         # use the standard velocity Verlet integrator
