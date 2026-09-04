@@ -19,10 +19,18 @@ class Langevin(VelocityVerlet):
         device: str | torch.device = "auto",
         rescale_energy: bool = False,
         random_rotation: bool = False,
+        rng: np.random.Generator | None = None,
         **kwargs,
     ):
         super().__init__(
-            atoms, timestep, model, device, rescale_energy, random_rotation, **kwargs
+            atoms,
+            timestep,
+            model,
+            device,
+            rescale_energy,
+            random_rotation,
+            rng,
+            **kwargs,
         )
 
         self.temperature_K = temperature_K
@@ -45,7 +53,7 @@ class Langevin(VelocityVerlet):
             1.0 - np.exp(-self.friction * self.dt)
         ) * np.sqrt(
             ase.units.kB * self.temperature_K * self.atoms.get_masses()[:, None]
-        ) * np.random.randn(*old_momenta.shape)
+        ) * self.rng.standard_normal(old_momenta.shape)
         self.atoms.set_momenta(new_momenta)
         if self.fixcm:
             self.atoms.set_velocities(

@@ -1,3 +1,5 @@
+from types import ModuleType
+
 import ase
 import ase.units
 import numpy as np
@@ -21,9 +23,12 @@ class VelocityVerlet(MolecularDynamics):
         device: str | torch.device = "auto",
         rescale_energy: bool = True,
         random_rotation: bool = False,
+        rng: np.random.Generator | None = None,
         **kwargs,
     ):
         super().__init__(atoms, timestep, **kwargs)
+
+        self.rng = np.random if rng is None else rng
 
         if isinstance(model, tuple):
             flashmd_model, symplectic_part = model
@@ -72,7 +77,7 @@ class VelocityVerlet(MolecularDynamics):
         if self.random_rotation:
             # generate a random rotation matrix with SciPy
             R = torch.tensor(
-                _get_random_rotation(),
+                _get_random_rotation(self.rng),
                 device=system.positions.device,
                 dtype=system.positions.dtype,
             )
@@ -199,8 +204,13 @@ def _convert_atoms_to_system(
     return system
 
 
-def _get_random_rotation():
-    R = Rotation.random().as_matrix()
-    if np.random.rand() < 0.5:
+def _get_random_rotation(rng: np.random.Generator | ModuleType = np.random):
+    # Haar-uniform rotation from a normalised Gaussian quaternion. This only
+    # needs standard_normal/random, so it works with any RNG following the
+    # ASE convention (the np.random module, a Generator, ...), unlike
+    # Rotation.random(rng=...), which requires an actual Generator.
+    quaternion = rng.standard_normal(4)
+    R = Rotation.from_quat(quaternion / np.linalg.norm(quaternion)).as_matrix()
+    if rng.random() < 0.5:
         R *= -1  # allow improper rotations
     return R
