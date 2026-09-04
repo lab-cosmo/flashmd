@@ -152,6 +152,17 @@ def _check_ipi_compatibility(motion):
             "timescale. Use a single force level (nmts of length 1, or omit "
             "nmts entirely)."
         )
+    if np.prod(motion.nmts) > 1:
+        # even with a single force level, nmts=[n] with n > 1 makes i-PI split
+        # dt into n inner sub-steps (qdt = dt / (2 * prod(nmts))), which the
+        # hardcoded dt/2 splitting in get_standard_vv_step and the barostat
+        # propagators (_pbaro/_qbaro) do not account for.
+        raise ValueError(
+            f"FlashMD does not support inner MTS sub-stepping in i-PI: nmts="
+            f"{list(motion.nmts)} requests {int(np.prod(motion.nmts))} inner "
+            "sub-steps per outer step, but FlashMD can only integrate a "
+            "single sub-step. Use nmts=[1] (or omit nmts entirely)."
+        )
 
 
 def get_nve_stepper(
