@@ -14,7 +14,7 @@ dependencies = [
     "vesin>=0.5.8",
     "ase>=3.29.0",  # thermalize_momenta replaces MaxwellBoltzmannDistribution
     "huggingface_hub",
-    "scipy",  # used directly for scipy.spatial.transform.Rotation
+    "scipy",
 ]
 
 keywords = ["machine learning", "molecular modeling", "molecular dynamics"]
