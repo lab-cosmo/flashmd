@@ -205,12 +205,12 @@ def _convert_atoms_to_system(
 
 
 def _get_random_rotation(rng: np.random.Generator | ModuleType = np.random):
-    # Rotation.random(rng=...) requires an actual Generator; fall back to the
-    # (global-state) bare call when using the plain np.random module default.
-    if isinstance(rng, np.random.Generator):
-        R = Rotation.random(rng=rng).as_matrix()
-    else:
-        R = Rotation.random().as_matrix()
+    # Haar-uniform rotation from a normalised Gaussian quaternion. This only
+    # needs standard_normal/random, so it works with any RNG following the
+    # ASE convention (the np.random module, a Generator, ...), unlike
+    # Rotation.random(rng=...), which requires an actual Generator.
+    quaternion = rng.standard_normal(4)
+    R = Rotation.from_quat(quaternion / np.linalg.norm(quaternion)).as_matrix()
     if rng.random() < 0.5:
         R *= -1  # allow improper rotations
     return R

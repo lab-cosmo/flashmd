@@ -14,7 +14,7 @@ dependencies = [
     "vesin>=0.5.8",
     "ase>=3.29.0",  # thermalize_momenta replaces MaxwellBoltzmannDistribution
     "huggingface_hub",
-    "scipy>=1.15",  # Rotation.random(rng=...) needs the SPEC-007 rng keyword
+    "scipy",  # used directly for scipy.spatial.transform.Rotation
 ]
 
 keywords = ["machine learning", "molecular modeling", "molecular dynamics"]
