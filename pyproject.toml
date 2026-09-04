@@ -82,6 +82,7 @@ filterwarnings = [
     "ignore:`torch.jit.script` is deprecated:DeprecationWarning",
     "ignore:`torch.jit.load` is deprecated:DeprecationWarning",
     "ignore:`torch.jit.save` is deprecated:DeprecationWarning",
+    "ignore:`torch.jit.save` is not supported:DeprecationWarning",
     "ignore:`compute_requested_neighbors_from_options` is deprecated and will be removed in a future version:UserWarning",
     "ignore:hf_xet\\.download_files\\(\\) is deprecated:DeprecationWarning",
     "ignore:Due to '_pack_', the '.*' Structure will use memory layout compatible with MSVC:DeprecationWarning",
