@@ -60,6 +60,11 @@ class VelocityVerlet(MolecularDynamics):
             self.stepper = flashmd_stepper
         self.rescale_energy = rescale_energy
         self.random_rotation = random_rotation
+        # last momentum rescaling factor applied to conserve energy; None until
+        # the first step, and only set when rescale_energy=True. Attach an
+        # observer (e.g. dyn.attach(lambda: print(dyn.alpha), interval=1)) to
+        # monitor it during a run.
+        self.alpha = None
 
     def step(self):
         if self.rescale_energy:
@@ -108,7 +113,17 @@ class VelocityVerlet(MolecularDynamics):
         if self.rescale_energy:
             new_energy = self.atoms.get_total_energy()
             old_kinetic_energy = self.atoms.get_kinetic_energy()
-            alpha = np.sqrt(1.0 - (new_energy - old_energy) / old_kinetic_energy)
+            discriminant = 1.0 - (new_energy - old_energy) / old_kinetic_energy
+            if discriminant < 0.0:
+                raise RuntimeError(
+                    "Energy rescale failed: the step increased the total "
+                    f"energy by {new_energy - old_energy:.6g}, which exceeds "
+                    f"the post-step kinetic energy ({old_kinetic_energy:.6g}). "
+                    "Try a smaller timestep, or disable rescale_energy to "
+                    "inspect the trajectory."
+                )
+            alpha = np.sqrt(discriminant)
+            self.alpha = alpha
             self.atoms.set_momenta(alpha * self.atoms.get_momenta())
 
     def irun(self, steps=50):
