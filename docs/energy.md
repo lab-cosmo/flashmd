@@ -42,3 +42,49 @@ atoms.calc = calculator
 In general, the energy models are slower and have a larger memory footprint compared to
 the FlashMD models. As summarized above, you should use `do_gradients_with_energy=False`
 to save computation and memory when you do not need forces.
+
+Monitoring the rescaling factor
+--------------------------------
+
+Every time ``rescale_energy=True`` triggers a rescale, the momenta are multiplied by a
+factor ``alpha = sqrt(1 - (E_new - E_old) / E_kin)``. If a step increases the total energy
+by more than the post-step kinetic energy can absorb, no real ``alpha`` exists to restore
+energy conservation; rather than silently producing ``NaN`` momenta, both the ASE and i-PI
+integrators raise a ``RuntimeError`` in that case. This is a sign that the step was
+unphysical (e.g. atomic overlap or a model extrapolation error) -- consider using a
+smaller time step.
+
+You can also monitor ``alpha`` directly, to catch large corrections before they become
+outright failures.
+
+**ASE**: the last computed value is available as ``dyn.alpha`` (``None`` until the first
+rescaled step). Attach an observer to log it during a run:
+
+```
+dyn.attach(lambda: print(dyn.alpha), interval=1)
+```
+
+**i-PI**: the value is written each step to ``motion.flashmd_alpha`` (``nan`` on any step
+where rescaling did not run), which you can expose as a genuine column in the ``.out``
+file, next to volume, pressure, etc., by registering it as a custom property when you
+build the ``InteractiveSimulation``:
+
+```
+sim = InteractiveSimulation(
+    input_xml,
+    custom_properties={
+        "flashmd_alpha": {
+            "func": lambda self: getattr(self.motion, "flashmd_alpha", float("nan")),
+            "dimension": "undefined",
+            "help": "FlashMD momentum rescale factor (energy conservation).",
+        }
+    },
+)
+```
+
+and adding ``flashmd_alpha`` to the ``<properties>`` list in your xml file. The custom
+property must be registered this way, in the Python script that builds the
+``InteractiveSimulation``, before you can reference it in the xml: i-PI validates the
+``<properties>`` list against its property registry as soon as the simulation object is
+built, so adding ``flashmd_alpha`` to the xml alone, without this registration, raises
+``KeyError: flashmd_alpha is not a recognized property``.

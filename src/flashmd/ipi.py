@@ -30,6 +30,8 @@ def get_standard_vv_step(
     """
 
     def vv_step(motion):
+        motion.flashmd_alpha = float("nan")
+
         if random_rotation:
             raise NotImplementedError(
                 "Random rotation is not implemented in the standard VV stepper."
@@ -50,7 +52,17 @@ def get_standard_vv_step(
             info("@flashmd: Energy rescale", verbosity.debug)
             new_energy = sim.properties("conserved")
             kinetic_energy = sim.properties("kinetic_md")
-            alpha = np.sqrt(1.0 - (new_energy - old_energy) / kinetic_energy)
+            discriminant = 1.0 - (new_energy - old_energy) / kinetic_energy
+            if discriminant < 0.0:
+                raise RuntimeError(
+                    "Energy rescale failed: the step increased the total "
+                    f"energy by {new_energy - old_energy:.6g}, which exceeds "
+                    f"the post-step kinetic energy ({kinetic_energy:.6g}). "
+                    "Try a smaller timestep, or disable rescale_energy to "
+                    "inspect the trajectory."
+                )
+            alpha = np.sqrt(discriminant)
+            motion.flashmd_alpha = alpha
             motion.beads.p[:] = alpha * dstrip(motion.beads.p)
 
     return vv_step
@@ -90,6 +102,8 @@ def get_flashmd_vv_step(
         stepper = flashmd_stepper
 
     def flashmd_vv(motion):
+        motion.flashmd_alpha = float("nan")
+
         info("@flashmd: Starting VV", verbosity.debug)
         if rescale_energy:
             info("@flashmd: Old energy", verbosity.debug)
@@ -128,7 +142,17 @@ def get_flashmd_vv_step(
             info("@flashmd: Energy rescale", verbosity.debug)
             new_energy = sim.properties("conserved")
             kinetic_energy = sim.properties("kinetic_md")
-            alpha = np.sqrt(1.0 - (new_energy - old_energy) / kinetic_energy)
+            discriminant = 1.0 - (new_energy - old_energy) / kinetic_energy
+            if discriminant < 0.0:
+                raise RuntimeError(
+                    "Energy rescale failed: the step increased the total "
+                    f"energy by {new_energy - old_energy:.6g}, which exceeds "
+                    f"the post-step kinetic energy ({kinetic_energy:.6g}). "
+                    "Try a smaller timestep, or disable rescale_energy to "
+                    "inspect the trajectory."
+                )
+            alpha = np.sqrt(discriminant)
+            motion.flashmd_alpha = alpha
             motion.beads.p[:] = alpha * dstrip(motion.beads.p)
             motion.integrator.pconstraints()  # just to be sure
 
