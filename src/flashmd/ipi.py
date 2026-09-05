@@ -239,7 +239,7 @@ def _qbaro(baro, mode):
         baro.nm.qnm[0, :] *= expq
         baro.nm.pnm[0, :] *= expp
         baro.cell.h *= expq
-    else:
+    elif mode == "flexible":
         # the barostat thermostat kicks all six components, so `p` cannot be assumed
         # to be projected here
         _project_baro(baro)
@@ -250,6 +250,8 @@ def _qbaro(baro, mode):
         baro.nm.qnm[0] = (dstrip(baro.nm.qnm)[0].reshape(-1, 3) @ expq.T).reshape(-1)
         baro.nm.pnm[0] = (dstrip(baro.nm.pnm)[0].reshape(-1, 3) @ expp.T).reshape(-1)
         baro.cell.h = expq @ dstrip(baro.cell.h)
+    else:
+        raise TypeError(f"Unknown barostat mode '{mode}'.")
 
 
 def _pbaro(baro, mode):
@@ -268,11 +270,13 @@ def _pbaro(baro, mode):
             * dt
             * (baro.cell.V * (press - nbeads * baro.pext) + Constants.kb * baro.temp)
         )
-    else:
+    elif mode == "flexible":
         stress = np.triu(dstrip(baro.stress_mts(0)) - nbeads * np.eye(3) * baro.pext)
         baro.p += dt * (baro.cell.V * stress + Constants.kb * baro.temp * baro.L)
 
         _project_baro(baro)
+    else:
+        raise TypeError(f"Unknown barostat mode '{mode}'.")
 
 
 def get_npt_stepper(
