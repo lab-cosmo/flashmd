@@ -40,6 +40,12 @@ even on a single GPU on modern HPC clusters.
 **Note:** FlashMD in LAMMPS does not support running with exact energy conservation. You
 can use the i-PI and ASE interfaces if you need this functionality.
 
+**Note:** FlashMD in LAMMPS does not support ``run_style respa`` (multiple
+time-stepping). The ``fix metatomic`` integrator only registers itself for the
+regular (``verlet``) integration hooks, so under ``run_style respa`` it is silently
+never called at any level: FlashMD will neither raise an error nor propagate the
+system. Make sure your input file uses the default ``run_style verlet``.
+
 Usage
 -----
 
