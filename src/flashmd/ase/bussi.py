@@ -27,6 +27,12 @@ class Bussi(VelocityVerlet):
         self.temperature_K = temperature_K
         self.time_constant = time_constant
 
+        if np.isclose(self.atoms.get_kinetic_energy(), 0.0, rtol=0, atol=1e-12):
+            raise ValueError(
+                "Initial kinetic energy is zero. "
+                "Please set the initial velocities before running Bussi NVT."
+            )
+
     def step(self):
         self.apply_bussi_half_step()
         super().step()
@@ -34,7 +40,7 @@ class Bussi(VelocityVerlet):
 
     def apply_bussi_half_step(self):
         old_kinetic_energy = self.atoms.get_kinetic_energy()
-        n_degrees_of_freedom = 3 * len(self.atoms)
+        n_degrees_of_freedom = self.atoms.get_number_of_degrees_of_freedom()
         target_kinetic_energy = (
             0.5 * ase.units.kB * self.temperature_K * n_degrees_of_freedom
         )
