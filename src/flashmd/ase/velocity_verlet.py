@@ -149,6 +149,14 @@ def _convert_atoms_to_system(
 ) -> System:
     system_data = _ase_to_torch_data(atoms, dtype=dtype, device=device)
     system = System(*system_data)
+    n = len(atoms)
+    atom_samples = Labels(
+        names=["system", "atom"],
+        values=torch.vstack(
+            [torch.full((n,), 0, device=device), torch.arange(n, device=device)]
+        ).T,
+        assume_unique=True,
+    )
     system.add_data(
         "momenta",
         TensorMap(
@@ -158,12 +166,7 @@ def _convert_atoms_to_system(
                     values=torch.tensor(
                         atoms.get_momenta(), dtype=dtype, device=device
                     ).unsqueeze(-1),
-                    samples=Labels(
-                        names=["system", "atom"],
-                        values=torch.tensor(
-                            [[0, j] for j in range(len(atoms))], device=device
-                        ),
-                    ),
+                    samples=atom_samples,
                     components=[
                         Labels(
                             names="xyz",
@@ -184,12 +187,7 @@ def _convert_atoms_to_system(
                     values=torch.tensor(
                         atoms.get_masses(), dtype=dtype, device=device
                     ).unsqueeze(-1),
-                    samples=Labels(
-                        names=["system", "atom"],
-                        values=torch.tensor(
-                            [[0, j] for j in range(len(atoms))], device=device
-                        ),
-                    ),
+                    samples=atom_samples,
                     components=[],
                     properties=Labels.single().to(device),
                 )
