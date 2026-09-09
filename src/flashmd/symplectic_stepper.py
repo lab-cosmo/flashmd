@@ -145,7 +145,10 @@ def _make_system(positions, momenta, masses, template: System) -> System:
     n = positions.shape[0]
     atom_samples = Labels(
         names=["system", "atom"],
-        values=torch.tensor([[0, j] for j in range(n)], device=device),
+        values=torch.vstack(
+            [torch.full((n,), 0, device=device), torch.arange(n, device=device)]
+        ).T,
+        assume_unique=True,
     )
     xyz = [Labels(names="xyz", values=torch.tensor([[0], [1], [2]], device=device))]
 
@@ -176,10 +179,7 @@ def _make_system(positions, momenta, masses, template: System) -> System:
             blocks=[
                 TensorBlock(
                     values=masses,
-                    samples=Labels(
-                        names=["system", "atom"],
-                        values=torch.tensor([[0, j] for j in range(n)], device=device),
-                    ),
+                    samples=atom_samples,
                     components=[],
                     properties=Labels.single().to(device),
                 )

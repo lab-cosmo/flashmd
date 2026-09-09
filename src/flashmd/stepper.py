@@ -64,6 +64,17 @@ class FlashMDStepper:
             cell=system.cell,
             pbc=system.pbc,
         )
+        n = len(new_system)
+        atom_samples = Labels(
+            names=["system", "atom"],
+            values=torch.vstack(
+                [
+                    torch.full((n,), 0, device=self.device),
+                    torch.arange(n, device=self.device),
+                ]
+            ).T,
+            assume_unique=True,
+        )
         new_system.add_data(
             "momenta",
             TensorMap(
@@ -71,13 +82,7 @@ class FlashMDStepper:
                 blocks=[
                     TensorBlock(
                         values=new_p.unsqueeze(-1),
-                        samples=Labels(
-                            names=["system", "atom"],
-                            values=torch.tensor(
-                                [[0, j] for j in range(len(new_system))],
-                                device=self.device,
-                            ),
-                        ),
+                        samples=atom_samples,
                         components=[
                             Labels(
                                 names="xyz",
@@ -98,13 +103,7 @@ class FlashMDStepper:
                 blocks=[
                     TensorBlock(
                         values=masses,
-                        samples=Labels(
-                            names=["system", "atom"],
-                            values=torch.tensor(
-                                [[0, j] for j in range(len(new_system))],
-                                device=self.device,
-                            ),
-                        ),
+                        samples=atom_samples,
                         components=[],
                         properties=Labels.single().to(self.device),
                     )
